@@ -1,0 +1,1 @@
+# 유저의 수강 이력을 Vector Embedding
