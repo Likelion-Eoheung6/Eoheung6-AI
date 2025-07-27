@@ -1,70 +1,108 @@
+import uuid
 import os
-from service.config.qdrant_singleton import client
-from qdrant_client.models import SearchRequest, PointStruct, Filter, FieldCondition, MatchValue
 from dotenv import load_dotenv
-from services.tag import get_user_tags
-from services.review import get_user_reviews
-from services.history import get_user_class_titles
-from service.template.sql_template import FilterOpenClass
-from service config.db import db
-from transformers import AutoTokenizer, AutoModel
-from datetime import datetime
-import torch
+from openai import OpenAI
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
 
-# Embedding part
 load_dotenv()
-MODEL_NAME = os.environ.get("DEBERTA_MODEL_NAME")
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModel.from_pretrained(MODEL_NAME)
-model.eval()
+API_KEY = os.environ.get("AI_API_KEY")
 
-# Vector Search part
-COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION_NAME")
+client = OpenAI(api_key=API_KEY)
+q_client = QdrantClient(host="localhost", port=6333)
 
-def vector_embed(user_id):
-    # 1. 사용자 정보 수집
-    tags = get_user_tags(user_id)
-    reviews = get_user_reviews(user_id)
-    history = get_user_class_titles(user_id)
+qdrant_collection = "test"
 
-    profile = (
+q_client.recreate_collection(
+    collection_name=qdrant_collection,
+    vectors_config=VectorParams(size=1536, distance=Distance.COSINE)  # size는 벡터 차원
+)
+
+# response.data[0].embedding
+
+tags = "요리"
+history = "할머니와 함께하는 김장하기"
+reviews = "정말 재미있었습니다."
+
+mock =(
         f"이 사용자는 '{', '.join(tags)}' 태그를 선호하고, "
         f"'{', '.join(history)}' 클래스를 수강했으며, "
         f"리뷰로는 '{'; '.join(reviews)}' 같은 표현을 사용했습니다."
     )
 
-    user_vector = embed_text(profile)
-    candidates = search_similar_classes(user_vector)
-    open_classes = filter_open_classes([c["class_id"] for c in candidates])
-    # 프롬프트 반환, call_ai 위임
-    return answer
+text = "임베딩 텍스트입니다."
 
 
-# 문장 기반 Embed 된 데이터 쿼리. 유사도 추출
-def embed_text(text: str) -> list[float]:
-    inputs = tokenizer(text, return_tensors="pt",
-                       truncation=True, padding=True, max_length=512)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    return outputs.last_hidden_state[:, 0, :].squeeze().tolist()
+response = client.embeddings.create(
+    input="tag: 베이킹, class: 과자 만들기, review: 과자는 맛있어요.",
+    model="text-embedding-3-small"
+)
 
-# 비슷한 클래스 서치
-def search_similar_class(query_vector:
-                         list[float], top_k: int = 5) -> list[dict]:
-    search_result = client.search(
-        collection_name = COLLECTION_NAME,
-        query_vector=query_vector,
-        limit=top_k,
-        with_payload=True
-    )
-
-    return [
-        {
-            "class_id": point.payload.get("class_id"),
-            "title": point.payload.get("title"),
-            "description": point.payload.get("description"),
-            "score": point.score
-        }
-        for point in search_result
+q_client.upsert(
+    collection_name=qdrant_collection,
+    points=[
+        PointStruct(
+            id=str(uuid.uuid4()),
+            vector=response.data[0].embedding,
+            payload={"tag": "베이킹",
+                     "class": "초코 쿠키 만들기",
+                     "review": "과자는 맛있어요"}
+        )
     ]
+)
+
+response = client.embeddings.create(
+    input="tag: 요리, class: 반찬 쉽게 만들기, review: 재미있었어요.",
+    model="text-embedding-3-small"
+)
+
+q_client.upsert(
+    collection_name=qdrant_collection,
+    points=[
+        PointStruct(
+            id=str(uuid.uuid4()),
+            vector=response.data[0].embedding,
+            payload={"tag": "요리",
+                     "class": "반찬 쉽게 만들기",
+                     "review": "재미있었어요"}
+        )
+    ]
+)
+
+response = client.embeddings.create(
+    input="tag: 운동, class: 맨몸 운동, review: 득근했어요.",
+    model="text-embedding-3-small"
+)
+
+q_client.upsert(
+    collection_name=qdrant_collection,
+    points=[
+        PointStruct(
+            id=str(uuid.uuid4()),
+            vector=response.data[0].embedding,
+            payload={"tag": "운동",
+                     "class": "맨몸 운동",
+                     "review": "득근했어요"}
+        )
+    ]
+)
+
+query = (
+    f"tag: 요리, class: 김장 담그기, review: 맛있게 먹었어요"
+)
+
+query_embedding = client.embeddings.create(
+    input=query,
+    model="text-embedding-3-small"
+).data[0].embedding
+
+search_result = q_client.search(
+    collection_name=qdrant_collection,
+    query_vector=query_embedding,
+    limit=1
+)
+
+for i, result in enumerate(search_result, 1):
+    print(f"[{i}] 점수: {result.score:.4f}")
+    print(" payload:", result.payload)

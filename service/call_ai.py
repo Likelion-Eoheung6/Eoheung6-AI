@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient
+from service.config.qdrant_singleton import QdrantClient
 
 client = QdrantClient(host="localhost", port=6333)
 

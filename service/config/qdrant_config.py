@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient
+from service.config.qdrant_singleton import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 import os
 
