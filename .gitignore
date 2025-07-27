@@ -312,3 +312,6 @@ Temporary Items
 *.icloud
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,flask
+
+# in Develop
+docker-compose.yml
