@@ -19,6 +19,13 @@ q_client.recreate_collection(
     vectors_config=VectorParams(size=1536, distance=Distance.COSINE)  # size는 벡터 차원
 )
 
+# embedding_service = EmbeddingService(
+#     openai_client=openai_client,
+#     qdrant_client=qdrant_client,
+#     collection_name="test"
+# )
+
+
 # response.data[0].embedding
 
 tags = "요리"

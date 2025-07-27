@@ -27,5 +27,31 @@ q_client.recreate_collection(
     vectors_config=VectorParams(size=1536, distance=Distance.COSINE)  # size는 벡터 차원
 )
 
-def embedding_user_data():
-    return 0
+class DataEmbedding:
+    def __init__(self, openai_client: OpenAI, qdrant_client: QdrantClient, collection_name: str):
+        self.client = openai_client
+        self.qdrant = qdrant_client
+        self.collection = collection_name
+
+    def save(self, tag: str, class_name: str, review: str) -> None:
+
+        text = f"tag: {tag}, class: {class_name}, review: {review}"
+
+        response = client.embeddings.create(
+            input=text,
+            model="text-embedding-3-small"
+        ).data[0].embedding
+
+        q_client.upsert(
+        collection_name=self.coleection,
+        points=[
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector=response,
+                payload={"tag": tag,
+                         "class": class_name,
+                         "review": review
+                         }
+                )
+            ]
+        )
