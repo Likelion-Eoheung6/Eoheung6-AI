@@ -25,7 +25,7 @@ def save_data():
 
     response_data = {
             "isSuccess": True,
-            "code": "FLASK_200",
+            "code": "200",
             "httpStatus": 200,
             "message": "RAG 검색 결과입니다.",
             "data": res,

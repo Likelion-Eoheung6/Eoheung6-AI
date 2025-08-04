@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from service.config.qdrant_config import init_qdrant_collection
 from service.config.sql_alchemy import db
-from service.model.class_model import Class, ClassOpen
+from service.model.class_model import ClassInfo, ClassOpen
 
 
 def create_app():
@@ -26,10 +26,10 @@ def create_app():
 
     print("컨트롤러 진입")
 
-    from controller.save_data import save_bp
-    from controller.get_answer import call_bp
+    from controller.save import save_bp
+    # from controller.get_answer import call_bp AI로 응답 생성할 필요 없어짐
     app.register_blueprint(save_bp)
-    app.register_blueprint(call_bp)
+    # app.register_blueprint(call_bp)
 
     return app
 
