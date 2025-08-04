@@ -13,13 +13,14 @@ def save_data():
       user_id = request.json.get("user_id")
       tag = request.json.get("tag")
       class_name = request.json.get("class")
-      review = request.json.get("review")
+      # 리뷰는 다른 컨트롤러에서 컨트롤할 예정
+      # review = request.json.get("review")
 
 
       body = OrderedDict([
             ("class_id", class_id),
             ("user_id", user_id),
-            ("tag", tag),
+            # ("tag", tag),
             ("class_name", class_name),
             ("review", review)
       ])

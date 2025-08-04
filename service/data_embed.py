@@ -11,15 +11,15 @@ from openai import OpenAI
 load_dotenv()
 
 
-class DataEmbedding:
+class TagAndClassDataEmbedding:
     def __init__(self):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.qdrant_collection = qdrant_collection
 
-    def save(self, class_id: int, tag: str, class_name: str, review: str) -> None:
+    def save(self, class_id: int, tag: str, class_name: str) -> None:
 
-        text = f"class_id: {class_id}, tag: {tag}, class: {class_name}, review: {review}"
+        text = f"class_id: {class_id}, tag: {tag}, class: {class_name}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -34,8 +34,8 @@ class DataEmbedding:
                 vector=response,
                 payload={"class_id": class_id,
                          "tag": tag,
-                         "class": class_name,
-                         "review": review
+                         "class": class_name
+                        #  "review": review
                          }
                 )
             ]
