@@ -9,6 +9,7 @@ save_bp = Blueprint("rcmd", __name__, url_prefix="/ai")
 @save_bp.route("/save", methods=["POST"])
 def save_data():
 
+      class_id = request.json.get("class_id")
       user_id = request.json.get("user_id")
       tag = request.json.get("tag")
       class_name = request.json.get("class")
@@ -16,6 +17,7 @@ def save_data():
 
 
       body = OrderedDict([
+            ("class_id", class_id),
             ("user_id", user_id),
             ("tag", tag),
             ("class_name", class_name),
@@ -24,7 +26,7 @@ def save_data():
     
       embed = DataEmbedding()
 
-      embed.save(tag, class_name, review)
+      embed.save(class_id, tag, class_name, review)
       
       response_data = {
             "isSuccess": True,

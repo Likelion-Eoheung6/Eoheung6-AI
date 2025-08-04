@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 import json
 from collections import OrderedDict
-from service.rag import RagAnswer
+from service.call_ai import ResAI
 import datetime
 
 
@@ -9,7 +9,7 @@ call_bp = Blueprint("get_answer", __name__, url_prefix="/ai")
 
 @call_bp.route("/call", methods=["POST"])
 def save_data():
-    call = RagAnswer()
+    call = ResAI()
 
     tag = request.json.get("tag")
     class_name = request.json.get("class")
@@ -21,7 +21,7 @@ def save_data():
             ("review", review)
       ])
 
-    res = call.call(tag, class_name, review)
+    res = call.getAIRes(tag, class_name, review)
 
     response_data = {
             "isSuccess": True,

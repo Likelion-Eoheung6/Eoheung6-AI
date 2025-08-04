@@ -17,9 +17,9 @@ class DataEmbedding:
         self.qdrant_client = qdrant_client
         self.qdrant_collection = qdrant_collection
 
-    def save(self, tag: str, class_name: str, review: str) -> None:
+    def save(self, class_id: int, tag: str, class_name: str, review: str) -> None:
 
-        text = f"tag: {tag}, class: {class_name}, review: {review}"
+        text = f"class_id: {class_id}, tag: {tag}, class: {class_name}, review: {review}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -32,7 +32,8 @@ class DataEmbedding:
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector=response,
-                payload={"tag": tag,
+                payload={"class_id": class_id,
+                         "tag": tag,
                          "class": class_name,
                          "review": review
                          }

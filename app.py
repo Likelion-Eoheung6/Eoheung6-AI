@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from service.config.qdrant_config import init_qdrant_collection
 from service.config.sql_alchemy import db
+from service.model.class_model import Class, ClassOpen
 
 
 def create_app():
@@ -15,6 +16,9 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = MYSQL_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
+    # 스키마 새로 선언 <- 추후 삭제해야 할 부분 FIXME
+    with app.app_context():
+        db.create_all()
     # Qdrant ddl-auto = create로 설정
     init_qdrant_collection()
 
