@@ -40,3 +40,32 @@ class TagAndClassDataEmbedding:
                 )
             ]
         )
+
+class ReviewDataEmbedding:
+    def __init__(self):
+        self.openai_client = openai_client
+        self.qdrant_client = qdrant_client
+        self.qdrant_collection = qdrant_collection
+    
+    def save(self, class_id: int, user_id: int, review: str) -> None:
+        text = f"class_id: {class_id}, user_id: {user_id}, review: {review}"
+
+        response = self.openai_client.embeddings.create(
+            input=text,
+            model="text-embedding-3-small"
+        ).data[0].embedding
+
+        self.qdrant_client.upsert(
+        collection_name=self.qdrant_collection,
+        points=[
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector=response,
+                payload={"class_id": class_id,
+                         "user_id": user_id,
+                         "review": review
+                         }
+                )
+            ]
+        )
+    

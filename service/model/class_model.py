@@ -5,16 +5,16 @@ class ClassOpen(db.Model):
     __tablename__ = 'class_open'
 
     id = db.Column(db.BigInteger, primary_key=True)
-    class_id = db.Column(db.BigInteger, db.ForeignKey('class.id'))
+    info_id = db.Column(db.BigInteger, db.ForeignKey('class.info_id'))
     open_at = db.Column(db.DateTime)
     is_full = db.Column(db.Boolean)
 
     class_info = db.relationship('Class', backref='open_schedule')
 
-class Class(db.Model):
+class ClassInfo(db.Model):
     # 클래스 기본 정보 인스턴스화 <- 추후 수정 FIXME
-    __tablename__ = 'class'
+    __tablename__ = 'class_info'
 
-    id = db.Column(db.BigInteger, primary_key=True)
-    class_name = db.Column(db.String(255))
-    description = db.Column(db.Text)
+    info_id = db.Column(db.BigInteger, primary_key=True)
+    title = db.Column(db.String(255))
+    content = db.Column(db.Text)
