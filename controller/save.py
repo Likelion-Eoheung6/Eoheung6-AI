@@ -13,6 +13,7 @@ class SaveWithoutReviewReq(BaseModel):
       info_id: Optional[int]
       class_name: Optional[str]
       tag: Optional[list[str]]
+      is_full: Optional[bool]
 
       def getInfoId(self):
             return self.info_id
@@ -20,6 +21,8 @@ class SaveWithoutReviewReq(BaseModel):
             return self.tag
       def getClassName(self):
             return self.class_name
+      def getIsFull(self):
+            return self.is_full
       
 class SaveReview(BaseModel):
       info_id: int
@@ -37,30 +40,27 @@ class SaveReview(BaseModel):
 def save_without_review():
       print("withoutReview 컨트롤러 진입")
       try :
-            data = SaveWithoutReviewReq(**request.json)
-      except ValidationError as e:
             body = OrderedDict([
             ("info_id", request.json.get("info_id")),
             ("class_name", request.json.get("class_name")),
-            ("tag", request.json.get("tag"))
+            ("tag", request.json.get("tag")),
+            ("is_full", request.json.get("is_full"))
             ])
+
+            data = SaveWithoutReviewReq(**request.json)
+      except ValidationError as e:
             return Response(json.dumps(
                         ResponseBuilder()
                         .is_success(False)
                         .code("FLASK_INVALID_REQUEST_400")
                         .http_status(400)
-                        .message("info_id, tag, class_name은 모두 필수값입니다.")
+                        .message("info_id, tag, class_name, is_full은 모두 필수값입니다.")
                         .data(body)
                         .time_stamp()
                         .build(), ensure_ascii=False),
                         status=400,
                         mimetype="application/json")
       except UnboundLocalError as e:
-            body = OrderedDict([
-            ("info_id", request.json.get("info_id")),
-            ("class_name", request.json.get("class_name")),
-            ("tag", request.json.get("tag"))
-            ])
             return Response(json.dumps(
                         ResponseBuilder()
                         .is_success(False)
@@ -72,19 +72,10 @@ def save_without_review():
                         .build(), ensure_ascii=False),
                         status=400,
                         mimetype="application/json")
-
-
-      body = OrderedDict([
-            ("info_id", data.getInfoId()),
-            ("class_name", data.getClassName()),
-            ("tag", data.getTag())
-      ])
     
-      embed = TagAndClassDataEmbedding()
+      embed = TagAndClassDataEmbedding(data.getInfoId(), data.getTag(), data.getClassName())
 
-      embed.save(data.getClassId(), data.getClassName(), data.getTag())
-      
-      
+      embed.save()
       
       return Response(json.dumps(
                   ResponseBuilder()
@@ -147,9 +138,9 @@ def save_review():
             ("review", data.getReview())
       ])
 
-      embed = ReviewDataEmbedding()
+      embed = ReviewDataEmbedding(data.getInfoId(), data.getUserId(), data.getReview())
 
-      embed.save(data.getInfoId(), data.getUserId(), data.getReview())
+      embed.save()
       
       return Response(
             json.dumps(ResponseBuilder()
