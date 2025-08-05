@@ -10,24 +10,24 @@ from controller.response_builder import ResponseBuilder
 save_bp = Blueprint("rcmd", __name__, url_prefix="/ai/save")
 
 class SaveWithoutReviewReq(BaseModel):
-      class_id: Optional[int]
+      info_id: Optional[int]
       class_name: Optional[str]
       tag: Optional[list[str]]
 
-      def getClassId(self):
-            return self.class_id
+      def getInfoId(self):
+            return self.info_id
       def getTag(self):
             return self.tag
       def getClassName(self):
             return self.class_name
       
 class SaveReview(BaseModel):
-      class_id: int
+      info_id: int
       user_id: int
       review: str
 
-      def getClassId(self):
-            return self.class_id
+      def getInfoId(self):
+            return self.info_id
       def getUserId(self):
             return self.user_id
       def getReview(self):
@@ -40,7 +40,7 @@ def save_without_review():
             data = SaveWithoutReviewReq(**request.json)
       except ValidationError as e:
             body = OrderedDict([
-            ("class_id", request.json.get("class_id")),
+            ("info_id", request.json.get("info_id")),
             ("class_name", request.json.get("class_name")),
             ("tag", request.json.get("tag"))
             ])
@@ -49,7 +49,7 @@ def save_without_review():
                         .is_success(False)
                         .code("FLASK_INVALID_REQUEST_400")
                         .http_status(400)
-                        .message("class_id, tag, class_name은 모두 필수값입니다.")
+                        .message("info_id, tag, class_name은 모두 필수값입니다.")
                         .data(body)
                         .time_stamp()
                         .build(), ensure_ascii=False),
@@ -57,7 +57,7 @@ def save_without_review():
                         mimetype="application/json")
       except UnboundLocalError as e:
             body = OrderedDict([
-            ("class_id", request.json.get("class_id")),
+            ("info_id", request.json.get("info_id")),
             ("class_name", request.json.get("class_name")),
             ("tag", request.json.get("tag"))
             ])
@@ -75,7 +75,7 @@ def save_without_review():
 
 
       body = OrderedDict([
-            ("class_id", data.getClassId()),
+            ("info_id", data.getInfoId()),
             ("class_name", data.getClassName()),
             ("tag", data.getTag())
       ])
@@ -105,7 +105,7 @@ def save_review():
             data = SaveReview(**request.json)
       except ValidationError as e:
             body = OrderedDict([
-            ("class_id", request.json.get("class_id")),
+            ("info_id", request.json.get("info_id")),
             ("user_id", request.json.get("user_id")),
             ("review", request.json.get("review"))
             ])
@@ -114,7 +114,7 @@ def save_review():
                   .is_success(False)
                   .code("FLASK_INVALID_REQUEST_400")
                   .http_status(400)
-                  .message("class_id, user_id, review는 필수값입니다.")
+                  .message("info_id, user_id, review는 필수값입니다.")
                   .data(body)
                   .time_stamp()
                   .build()
@@ -123,7 +123,7 @@ def save_review():
             mimetype="application/json")
       except UnboundLocalError as e:
             body = OrderedDict([
-            ("class_id", request.json.get("class_id")),
+            ("info_id", request.json.get("info_id")),
             ("user_id", request.json.get("user_id")),
             ("review", request.json.get("review"))
             ])
@@ -142,14 +142,14 @@ def save_review():
 
             
       body = OrderedDict([
-            ("class_id", data.getClassId()),
+            ("info_id", data.getInfoId()),
             ("user_id", data.getUserId()),
             ("review", data.getReview())
       ])
 
       embed = ReviewDataEmbedding()
 
-      embed.save(data.getClassId(), data.getUserId(), data.getReview())
+      embed.save(data.getInfoId(), data.getUserId(), data.getReview())
       
       return Response(
             json.dumps(ResponseBuilder()

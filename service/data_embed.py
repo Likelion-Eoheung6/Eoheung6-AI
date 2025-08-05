@@ -12,14 +12,17 @@ load_dotenv()
 
 
 class TagAndClassDataEmbedding:
-    def __init__(self):
+    def __init__(self, info_id: int, tag: list[str], class_name: str):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.qdrant_collection = qdrant_collection
+        self.info_id = info_id
+        self.tag = tag
+        self.class_name = class_name
 
-    def save(self, class_id: int, tag: str, class_name: str) -> None:
+    def save(self) -> None:
 
-        text = f"class_id: {class_id}, tag: {tag}, class: {class_name}"
+        text = f"class_id: {self.info_id}, tag: {self.tag}, class: {self.class_name}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -32,23 +35,25 @@ class TagAndClassDataEmbedding:
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector=response,
-                payload={"class_id": class_id,
-                         "tag": tag,
-                         "class": class_name
-                        #  "review": review
+                payload={"info_id": self.class_id,
+                         "tag": self.tag,
+                         "class": self.class_name
                          }
-                )
-            ]
-        )
+            )
+        ]
+    )
 
 class ReviewDataEmbedding:
-    def __init__(self):
+    def __init__(self, info_id: int, user_id: int, review: str):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.qdrant_collection = qdrant_collection
+        self.info_id = info_id
+        self.user_id = user_id
+        self.review = review
     
-    def save(self, class_id: int, user_id: int, review: str) -> None:
-        text = f"class_id: {class_id}, user_id: {user_id}, review: {review}"
+    def save(self) -> None:
+        text = f"info_id: {self.info_id}, user_id: {self.user_id}, review: {self.review}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -61,9 +66,9 @@ class ReviewDataEmbedding:
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector=response,
-                payload={"class_id": class_id,
-                         "user_id": user_id,
-                         "review": review
+                payload={"info": self.info_id,
+                         "user_id": self.user_id,
+                         "review": self.review
                          }
                 )
             ]
