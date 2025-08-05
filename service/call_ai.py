@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from service.config.sql_alchemy import db
 from service.model.class_model import ClassInfo, ClassOpen
 from service.rag import RagAnswer
@@ -14,7 +15,7 @@ class ResAI:
         id = res.get("class_id")
         print(id)
             # id를 MySQL에 검색
-        is_open = ClassOpen.query.filter_by(info_id=id).first()
+        is_open = ClassOpen.query.filter_by(info_id=id, is_full=False).first()
         if is_open is None:
             # 기간 만료 클래스일시
             # 재검색
@@ -25,17 +26,10 @@ class ResAI:
                 return "죄송해요. 개설된 클래스 중, 어울리는 클래스가 없네요."
             
         # context로 정리
-        context = (
-            f"추천된 클래스 정보입니다:\n"
-            f"- 카테고리(태그): {res['tag']}\n"
-            f"- 클래스명: {res['class']}\n"
-            f"- 수강자 리뷰: \"{res['review']}\"\n"
-        )
-
-        # # prompt 생성
-        # prompt = ("사용자는 " + self.rag.sentence(tag, class_name, review) +
-        #           "클래스를 좋아해서" + context +
-        #           "\n 이 클래스가 추천됐어. 이 클래스가 추천된 이유를 5줄 내외로 알려줘. 바로 본문부터 시작해야 해. 대답 없이.")
+        context = OrderedDict([
+            ("class_id", res['class_id']),
+            ("class_name", res['class']),
+            ("tag", res['tag'])])
+        print(context)
         
-        # 답변 반환
         return context
