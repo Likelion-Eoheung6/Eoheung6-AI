@@ -28,8 +28,10 @@ def create_app():
 
     from controller.save import save_bp
     from controller.get_answer import call_bp
+    from controller.change import change_bp
     app.register_blueprint(save_bp)
     app.register_blueprint(call_bp)
+    app.register_blueprint(change_bp)
 
     return app
 

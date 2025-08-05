@@ -7,7 +7,7 @@ from service.data_embed import TagAndClassDataEmbedding, ReviewDataEmbedding
 import datetime
 from controller.response_builder import ResponseBuilder
 
-save_bp = Blueprint("rcmd", __name__, url_prefix="/ai/save")
+save_bp = Blueprint("save", __name__, url_prefix="/ai/save")
 
 class SaveWithoutReviewReq(BaseModel):
       info_id: Optional[int]
