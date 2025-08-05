@@ -1,7 +1,7 @@
 import os
 import uuid
 from service.config.qdrant_config import qdrant_client, openai_client, qdrant_collection
-from qdrant_client.models import PointStruct
+from qdrant_client.models import PointStruct, models
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -69,3 +69,46 @@ class ReviewDataEmbedding:
             ]
         )
     
+
+class ChangeFlag:
+    def __init__(self, info_id:int, is_full: bool):
+        self.qdrant_client = qdrant_client
+        self.qdrant_collection = qdrant_collection
+        self.info_id = info_id
+        self.is_full = is_full
+
+    def change(self) -> None:
+        search = self.qdrant_client.scroll(
+            collection_name=self.qdrant_collection,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="info_id",
+                        match=models.MatchValue(value=self.info_id)
+                    )
+                ]
+            ),
+            limit=1
+        )
+        
+        if search[0]:
+            qdrant_client.set_payload(
+                collection_name=self.qdrant_collection,
+                payload={"is_full": self.is_full},
+                points=search[0]
+            )
+        
+    def get(self):
+        return self.qdrant_client.scroll(
+            collection_name=self.qdrant_collection,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="info_id",
+                        match=models.MatchValue(value=self.info_id)
+                    )
+                ]
+            ),
+            limit=1
+        )[0]
+

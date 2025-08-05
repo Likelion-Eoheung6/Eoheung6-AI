@@ -47,7 +47,7 @@ def save_without_review():
             return Response(json.dumps(
                         ResponseBuilder()
                         .is_success(False)
-                        .code("Flask_Invalid_Request_400")
+                        .code("FLASK_INVALID_REQUEST_400")
                         .http_status(400)
                         .message("class_id, tag, class_name은 모두 필수값입니다.")
                         .data(body)
@@ -64,7 +64,7 @@ def save_without_review():
             return Response(json.dumps(
                         ResponseBuilder()
                         .is_success(False)
-                        .code("Flask_Invalid_Request_400")
+                        .code("FLASK_INVALID_REQUEST_400")
                         .http_status(400)
                         .message("유효하지 않은 필드명입니다.")
                         .data(None)
@@ -89,7 +89,7 @@ def save_without_review():
       return Response(json.dumps(
                   ResponseBuilder()
                   .is_success(True)
-                  .code("Flask_201")
+                  .code("FLASK_201")
                   .http_status(201)
                   .message("성공적으로 Qdrant Database에 저장되었습니다.")
                   .data(body)
@@ -112,7 +112,7 @@ def save_review():
             return Response(json.dumps(
                   ResponseBuilder()
                   .is_success(False)
-                  .code("Flask_Invalid_Request_400")
+                  .code("FLASK_INVALID_REQUEST_400")
                   .http_status(400)
                   .message("class_id, user_id, review는 필수값입니다.")
                   .data(body)
@@ -130,7 +130,7 @@ def save_review():
             return Response(json.dumps(
                   ResponseBuilder()
                   .is_success(False)
-                  .code("Flask_Invalid_Request_400")
+                  .code("FLASK_INVALID_REQUEST_400")
                   .http_status(400)
                   .message("유효하지 않은 필드명입니다.")
                   .data(body)
