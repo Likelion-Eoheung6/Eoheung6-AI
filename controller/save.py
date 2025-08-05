@@ -8,7 +8,7 @@ save_bp = Blueprint("rcmd", __name__, url_prefix="/ai/save")
 
 
 @save_bp.route("/withoutReview", methods=["POST"])
-def save_data():
+def save_without_review():
       print("withoutReview 컨트롤러 진입")
       class_id = request.json.get("class_id")
       # user_id = request.json.get("user_id")
@@ -45,7 +45,7 @@ def save_data():
       )
 
 @save_bp.route("/review", methods=["POST"])
-def save_data():
+def save_review():
       print("review 컨트롤러 진입")
 
       class_id = request.json.get("class_id")
