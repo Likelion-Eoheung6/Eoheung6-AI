@@ -1,5 +1,5 @@
 from service.config.sql_alchemy import db
-from service.model.class_model import Class, ClassOpen
+from service.model.class_model import ClassInfo, ClassOpen
 from service.rag import RagAnswer
 from service.config.qdrant_config import openai_client
 
@@ -14,7 +14,7 @@ class ResAI:
         id = res.get("class_id")
         print(id)
             # id를 MySQL에 검색
-        is_open = ClassOpen.query.filter_by(class_id=id).first()
+        is_open = ClassOpen.query.filter_by(info_id=id).first()
         if is_open is None:
             # 기간 만료 클래스일시
             # 재검색

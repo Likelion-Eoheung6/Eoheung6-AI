@@ -27,9 +27,9 @@ def create_app():
     print("컨트롤러 진입")
 
     from controller.save import save_bp
-    # from controller.get_answer import call_bp AI로 응답 생성할 필요 없어짐
+    from controller.get_answer import call_bp
     app.register_blueprint(save_bp)
-    # app.register_blueprint(call_bp)
+    app.register_blueprint(call_bp)
 
     return app
 
