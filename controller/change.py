@@ -1,4 +1,3 @@
-
 from collections import OrderedDict
 import json
 from flask import Blueprint, Response, request
@@ -37,8 +36,19 @@ def change_is_full_flag():
         mimetype="application/json")
     
     change = ChangeFlag(info_id, is_full)
-
-    change.change()
+    try:
+        change.change()
+    except ValueError:
+        return Response(json.dumps(ResponseBuilder()
+                                   .is_success(False)
+                                   .code("FLASK_INVALID_CHANGE_REQUEST_400")
+                                   .http_status(400)
+                                   .message(f"유효하지 않은 요청입니다.")
+                                   .data(body)
+                                   .time_stamp()
+                                   .build(), ensure_ascii=False),
+                                   status=400,
+                                   mimetype="application/json")
 
     return Response(json.dumps(ResponseBuilder()
                                .is_success(True)
@@ -47,7 +57,7 @@ def change_is_full_flag():
                                .message("성공적으로 Qdrant Database에서 is_full 필드 값이 변경되었습니다.")
                                .data(change.get())
                                .time_stamp()
-                               .build, ensure_ascii=False),
+                               .build(), ensure_ascii=False),
                                status=201,
                                mimetype="application/json")
 

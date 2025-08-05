@@ -22,7 +22,7 @@ class TagAndClassDataEmbedding:
 
     def save(self) -> None:
 
-        text = f"class_id: {self.info_id}, tag: {self.tag}, class: {self.class_name}"
+        text = f"info_id: {self.info_id}, tag: {self.tag}, class: {self.class_name}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -35,7 +35,7 @@ class TagAndClassDataEmbedding:
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector=response,
-                payload={"info_id": self.class_id,
+                payload={"info_id": self.info_id,
                          "tag": self.tag,
                          "class": self.class_name
                          }
@@ -83,7 +83,7 @@ class ChangeFlag:
         self.is_full = is_full
 
     def change(self) -> None:
-        search = self.qdrant_client.scroll(
+        search, _ = self.qdrant_client.scroll(
             collection_name=self.qdrant_collection,
             scroll_filter=models.Filter(
                 must=[
@@ -96,15 +96,24 @@ class ChangeFlag:
             limit=1
         )
         
+        
+        if not search:
+            raise ValueError(f"info_id={self.info_id} 에 해당하는 데이터가 없습니다.")
+        if search[0].payload.get("is_full") == self.is_full:
+            raise ValueError(f"is_full 값이 이미 {self.is_full} 입니다.")
+
+
+
         if search[0]:
-            qdrant_client.set_payload(
+            id = [point.id for point in search[0]]
+            self.qdrant_client.set_payload(
                 collection_name=self.qdrant_collection,
                 payload={"is_full": self.is_full},
-                points=search[0]
+                points=id
             )
         
     def get(self):
-        return self.qdrant_client.scroll(
+        search, _ = self.qdrant_client.scroll(
             collection_name=self.qdrant_collection,
             scroll_filter=models.Filter(
                 must=[
@@ -115,5 +124,10 @@ class ChangeFlag:
                 ]
             ),
             limit=1
-        )[0]
+        )
+
+        if search:
+            return search[0].payload
+        else:
+            return None
 
