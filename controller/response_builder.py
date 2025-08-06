@@ -20,9 +20,14 @@ class ResponseBuilder:
         self._data["message"] = message
         return self
 
-    def data(self, data):
-        self._data["data"] = data
-        return self
+    def data(self, data1, data2 = None):
+        if data2 is None:
+            self._data["data1"] = data1
+            return self
+        else:
+            self._data["data1"] = data1
+            self._data["data2"] = data2
+            return [data1, data2]
 
     def time_stamp(self):
         self._data["timeStamp"] = datetime.datetime.now().isoformat()
