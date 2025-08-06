@@ -1,3 +1,4 @@
+from sqlalchemy import JSON
 from service.config.sql_alchemy import db
 
 class ClassOpen(db.Model):
@@ -16,5 +17,7 @@ class ClassInfo(db.Model):
     __tablename__ = 'class_info'
 
     info_id = db.Column(db.BigInteger, primary_key=True)
+    user_id = db.Column(db.BigInteger)
     title = db.Column(db.String(255))
     content = db.Column(db.Text)
+    tag = db.Column(JSON)

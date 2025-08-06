@@ -101,16 +101,12 @@ class ChangeFlag:
             raise ValueError(f"info_id={self.info_id} 에 해당하는 데이터가 없습니다.")
         if search[0].payload.get("is_full") == self.is_full:
             raise ValueError(f"is_full 값이 이미 {self.is_full} 입니다.")
-
-
-
-        if search[0]:
-            id = [point.id for point in search[0]]
-            self.qdrant_client.set_payload(
-                collection_name=self.qdrant_collection,
-                payload={"is_full": self.is_full},
-                points=id
-            )
+    
+        self.qdrant_client.set_payload(
+            collection_name=self.qdrant_collection,
+            payload={"is_full": self.is_full},
+            points=[search[0].id]
+        )
         
     def get(self):
         search, _ = self.qdrant_client.scroll(

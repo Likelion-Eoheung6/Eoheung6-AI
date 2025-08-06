@@ -6,6 +6,8 @@ from service.config.qdrant_config import qdrant_client, openai_client, qdrant_co
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 import numpy as np
 
+from service.model.class_model import ClassOpen
+
 
 class RagAnswer:
     def __init__(self):
@@ -14,73 +16,59 @@ class RagAnswer:
         self.qdrant_collection = qdrant_collection
     
     def call(self, tag: str, class_name: str, review: str):
-        data = self.sentence(tag, class_name, review)
+        # 완성해야 함
 
-        embed_query = openai_client.embeddings.create(
-            input=data,
-            model="text-embedding-3-small"
-        ).data[0].embedding
+        # 1. 수강 이력이 없음 -> tag 10개
+        # FIXME USER_ID -> 추후 토큰같은 user_id 파싱
+        if db.session.query(ClassHistory).filter(ClassHistory.user_id == USER_ID).first() is None:
+            data = None # FIXME 태그 쿼리 데이터로 변경
 
-        search_result = qdrant_client.search(
-            collection_name=qdrant_collection,
-            query_vector=embed_query,
-            limit=1,
-            query_filter=Filter(
-                must_not=[
-                    FieldCondition(
-                        key="user_id",
-                        match=MatchValue(value=USER_ID)  # 제외할 user_id
-                    )
-                ]
+            # tag 배열 count, for문으로 tag 개수 비례해서 10개 카운트
+            # 나누어 떨어질 때, 안 떨어질 때 분기
+            search, _= self.qdrant_client.search(
+                collection_name=self.qdrant_collection, # FIXME collection 분리로 인해 수정 필요
+                query_vector=data,
+                limit = 10,  # FIXME for문 변경 시 수정 필요
+                query_filter= Filter(
+                    must_not = [
+                        FieldCondition(
+                            key="user_id",
+                            match=MatchValue(value=int(USER_ID)) # FIXME USER_ID -> user_id
+                        )
+                    ]
+                )
             )
-        )
+        # 2. 수강 이력은 있고, 리뷰는 없음
+        elif db.session.query(Review).filter(Review.user_id == USER_ID).first() is None:
+            data = None # FIXME 이후 최근 수강 이력 기반으로 변경
 
-        print(search_result[0].payload)
-        # json 전체는 [result.payload for result in search_result]를 반환
-        return search_result[0].payload
-    
-    def re_call(self, class_id: int, tag: str, class_name: str, review: str):
-        data = self.sentence(tag, class_name, review)
-
-        embed_query = openai_client.embeddings.create(
-            input=data,
-            model="text-embedding-3-small"
-        ).data[0].embedding
-        
-        search_result = qdrant_client.search(
-            collection_name=qdrant_collection,
-            query_vector=embed_query,
-            limit=1,
-            query_filter= Filter(
-                must_not=[
-                    FieldCondition(
-                        key="class_id",
-                        match=MatchValue(value=int(class_id))
-                    )
-                ]
+            search, _ = self.qdrant_client.search(
+                collection_name=self.qdrant_collection, # FIXME collection 분리로 인해 수정 필요
+                query_vector=data,
+                limit = 10,  # FIXME for문 변경 시 수정 필요
+                query_filter= Filter(
+                    must_not = [
+                        FieldCondition(
+                            key="user_id",
+                            match=MatchValue(value=int(USER_ID)) # FIXME USER_ID -> user_id
+                        )
+                    ]
+                )
             )
-        )
-        
-        return search_result[0]
-    
-    def sentence(self, tag, class_name, review):
-        return f" \"tag\": {tag}, \"class_name\": {class_name}, \"review\": {review}"
-    
-    def weights(pref_tag, common_tag, alpha = 1.2, beta = 0.8):
-        # 선호 태그에서 선호 - 클래스 공통 분모가 차지하는 비
-        overlap_ratio = common_tag / pref_tag
-
-        overlap_effect = (1 / pref_tag) ** beta
-
-        base_tag = 0.5
-        bonus = 0.5
-
-        w_tag = base_tag + bonus * (overlap_effect * (1 + overlap_effect))
-        return min(w_tag, 1.0)
-
-    def calc_tag_ratio(has_review:bool, tag_weight:float) -> int:
-        if(has_review):
-            result = tag_weight * 8
-        else :
-            result = tag_weight * 10
-        return round(tag_weight)
+        # 3. 리뷰까지 있음 -> 리뷰 기반 2개, tag_weight 기반 쿼리 8개
+        else:
+            data = None # FIXME 이후 리뷰 포함 쿼리로 변경
+            search, _ = self.qdrant_client.search(
+                collection_name=self.qdrant_collection, # FIXME collection 분리로 인해 수정 필요
+                query_vector=data,
+                limit = 10,
+                query_filter= Filter(
+                    must_not = [
+                        FieldCondition(
+                            key="user_id",
+                            match=MatchValue(value=int(USER_ID)) # FIXME USER_ID -> user_id
+                        )
+                    ]
+                )
+            )
+        return search # record 형태임. 꺼낼 때 search[0].payload.get("info_id")로 꺼낼 수 있을듯?

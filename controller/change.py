@@ -38,13 +38,13 @@ def change_is_full_flag():
     change = ChangeFlag(info_id, is_full)
     try:
         change.change()
-    except ValueError:
+    except ValueError as e:
         return Response(json.dumps(ResponseBuilder()
                                    .is_success(False)
                                    .code("FLASK_INVALID_CHANGE_REQUEST_400")
                                    .http_status(400)
                                    .message(f"유효하지 않은 요청입니다.")
-                                   .data(body)
+                                   .data(str(e))
                                    .time_stamp()
                                    .build(), ensure_ascii=False),
                                    status=400,
