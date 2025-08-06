@@ -11,18 +11,21 @@ from openai import OpenAI
 load_dotenv()
 
 
-class TagAndClassDataEmbedding:
-    def __init__(self, info_id: int, tag: list[str], class_name: str):
+class IncludeReview:
+    def __init__(self, info_id: int, title: str, tag: list[str], user_id:int, review:str, is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.qdrant_collection = qdrant_collection
         self.info_id = info_id
         self.tag = tag
-        self.class_name = class_name
+        self.title = title
+        self.user_id = user_id
+        self.review = review
+        self.is_full = is_full
 
     def save(self) -> None:
 
-        text = f"info_id: {self.info_id}, tag: {self.tag}, class: {self.class_name}"
+        text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, user_id: {self.user_id}, review: {self.review}, is_full {self.is_full}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -36,24 +39,27 @@ class TagAndClassDataEmbedding:
                 id=str(uuid.uuid4()),
                 vector=response,
                 payload={"info_id": self.info_id,
+                         "title": self.title,
                          "tag": self.tag,
-                         "class": self.class_name
+                         "user_id": self.user_id,
+                         "review": self.review,
+                         "is_full": self.is_full
                          }
             )
         ]
     )
 
-class ReviewDataEmbedding:
-    def __init__(self, info_id: int, user_id: int, review: str):
+class WithoutReview:
+    def __init__(self, info_id: int, tag: list[str], is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.qdrant_collection = qdrant_collection
         self.info_id = info_id
-        self.user_id = user_id
-        self.review = review
+        self.tag = tag
+        self.is_full = is_full
     
     def save(self) -> None:
-        text = f"info_id: {self.info_id}, user_id: {self.user_id}, review: {self.review}"
+        text = f"info_id: {self.info_id}, tag: {self.tag}, is_full: {self.is_full}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -67,8 +73,8 @@ class ReviewDataEmbedding:
                 id=str(uuid.uuid4()),
                 vector=response,
                 payload={"info": self.info_id,
-                         "user_id": self.user_id,
-                         "review": self.review
+                         "tag": self.tag
+                         "is_full": self.is_full
                          }
                 )
             ]
@@ -83,8 +89,20 @@ class ChangeFlag:
         self.is_full = is_full
 
     def change(self) -> None:
-        search, _ = self.qdrant_client.scroll(
-            collection_name=self.qdrant_collection,
+        search_without_review, _ = self.qdrant_client.scroll(
+            collection_name=self.qdrant_collection, # FIXME WithoutReview Collection
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="info_id",
+                        match=models.MatchValue(value=self.info_id)
+                    )
+                ]
+            ),
+            limit=1
+        )
+        search_include_review, _ = self.qdrant_client.scroll(
+            collection_name=self.qdrant_collection, # FIXME IncludeReview Collection
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -97,20 +115,25 @@ class ChangeFlag:
         )
         
         
-        if not search:
+        if not search_without_review or not search_include_review:
             raise ValueError(f"info_id={self.info_id} 에 해당하는 데이터가 없습니다.")
-        if search[0].payload.get("is_full") == self.is_full:
+        if search_without_review[0].payload.get("is_full") == self.is_full or search_include_review[0].payload.get("is_full") == self.is_full:
             raise ValueError(f"is_full 값이 이미 {self.is_full} 입니다.")
     
         self.qdrant_client.set_payload(
-            collection_name=self.qdrant_collection,
+            collection_name=self.qdrant_collection, # FIXME WithoutReview
             payload={"is_full": self.is_full},
-            points=[search[0].id]
+            points=[search_without_review[0].id]
+        )
+        self.qdrant_client.set_payload(
+            collection_name=self.qdrant_collection, # FIXME IncludeReview
+            payload={"is_full": self.is_full},
+            points=[search_include_review[0].id]
         )
         
-    def get(self):
+    def get_without_review(self):
         search, _ = self.qdrant_client.scroll(
-            collection_name=self.qdrant_collection,
+            collection_name=self.qdrant_collection,  # FIXME WithoutReview
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -125,5 +148,24 @@ class ChangeFlag:
         if search:
             return search[0].payload
         else:
-            return None
+            raise ValueError(f"info_id: {self.info_id}에 해당하는 데이터가 존재하지 않습니다.")
+        
+    def get_include_review(self):
+        search, _ = self.qdrant_client.scroll(
+            collection_name=self.qdrant_collection,  # FIXME IncludeReview
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="info_id",
+                        match=models.MatchValue(value=self.info_id)
+                    )
+                ]
+            ),
+            limit=1
+        )
+
+        if search:
+            return search[0].payload
+        else:
+            raise ValueError(f"info_id: {self.info_id}에 해당하는 데이터가 존재하지 않습니다.")
 
