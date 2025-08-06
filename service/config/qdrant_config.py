@@ -14,12 +14,18 @@ openai_client = OpenAI(api_key=API_KEY)
 qdrant_client = QdrantClient(host="localhost", port=6333)
 
 # RDB Table = Collection
-qdrant_collection = "test"
+tag_collection = "tag"
+review_collection = "review"
 
 
 def init_qdrant_collection():
-    if not qdrant_client.collection_exists(qdrant_collection):
+    if not qdrant_client.collection_exists(tag_collection):
         qdrant_client.recreate_collection(
-            collection_name=qdrant_collection,
+            collection_name=tag_collection,
+            vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+        )
+    if not qdrant_client.collection_exists(review_collection):
+        qdrant_client.recreate_collection(
+            collection_name=review_collection,
             vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
         )

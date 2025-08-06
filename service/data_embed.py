@@ -1,6 +1,6 @@
 import os
 import uuid
-from service.config.qdrant_config import qdrant_client, openai_client, qdrant_collection
+from service.config.qdrant_config import qdrant_client, openai_client, tag_collection, review_collection
 from qdrant_client.models import PointStruct, models
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -15,7 +15,7 @@ class IncludeReview:
     def __init__(self, info_id: int, title: str, tag: list[str], user_id:int, review:str, is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
-        self.qdrant_collection = qdrant_collection
+        self.review_collection = review_collection
         self.info_id = info_id
         self.tag = tag
         self.title = title
@@ -33,7 +33,7 @@ class IncludeReview:
         ).data[0].embedding
 
         self.qdrant_client.upsert(
-        collection_name=self.qdrant_collection,
+        collection_name=self.review_collection,
         points=[
             PointStruct(
                 id=str(uuid.uuid4()),
@@ -53,7 +53,7 @@ class WithoutReview:
     def __init__(self, info_id: int, tag: list[str], is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
-        self.qdrant_collection = qdrant_collection
+        self.tag_collection = tag_collection
         self.info_id = info_id
         self.tag = tag
         self.is_full = is_full
@@ -67,12 +67,12 @@ class WithoutReview:
         ).data[0].embedding
 
         self.qdrant_client.upsert(
-        collection_name=self.qdrant_collection,
+        collection_name=self.tag_collection,
         points=[
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector=response,
-                payload={"info": self.info_id,
+                payload={"info_id": self.info_id,
                          "tag": self.tag,
                          "is_full": self.is_full
                          }
@@ -84,13 +84,14 @@ class WithoutReview:
 class ChangeFlag:
     def __init__(self, info_id:int, is_full: bool):
         self.qdrant_client = qdrant_client
-        self.qdrant_collection = qdrant_collection
+        self.tag_collection = tag_collection
+        self.review_collection = review_collection
         self.info_id = info_id
         self.is_full = is_full
 
     def change(self) -> None:
         search_without_review, _ = self.qdrant_client.scroll(
-            collection_name=self.qdrant_collection, # FIXME WithoutReview Collection
+            collection_name=self.tag_collection, # FIXME WithoutReview Collection
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -101,8 +102,9 @@ class ChangeFlag:
             ),
             limit=1
         )
+
         search_include_review, _ = self.qdrant_client.scroll(
-            collection_name=self.qdrant_collection, # FIXME IncludeReview Collection
+            collection_name=self.review_collection, # FIXME IncludeReview Collection
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -115,25 +117,30 @@ class ChangeFlag:
         )
         
         
-        if not search_without_review or not search_include_review:
+        if not search_without_review and not search_include_review:
             raise ValueError(f"info_id={self.info_id} 에 해당하는 데이터가 없습니다.")
-        if search_without_review[0].payload.get("is_full") == self.is_full or search_include_review[0].payload.get("is_full") == self.is_full:
+        
+        search1 = search_without_review[0].payload.get("is_full") if search_without_review else None
+        search2 = search_include_review[0].payload.get("is_full") if search_include_review else None
+        if  search1 == self.is_full or search2 == self.is_full:
             raise ValueError(f"is_full 값이 이미 {self.is_full} 입니다.")
-    
-        self.qdrant_client.set_payload(
-            collection_name=self.qdrant_collection, # FIXME WithoutReview
-            payload={"is_full": self.is_full},
-            points=[search_without_review[0].id]
-        )
-        self.qdrant_client.set_payload(
-            collection_name=self.qdrant_collection, # FIXME IncludeReview
-            payload={"is_full": self.is_full},
-            points=[search_include_review[0].id]
-        )
+
+        if search_without_review:
+            self.qdrant_client.set_payload(
+                collection_name=self.tag_collection, # FIXME WithoutReview
+                payload={"is_full": self.is_full},
+                points=[search_without_review[0].id]
+            )
+        if search_include_review:
+            self.qdrant_client.set_payload(
+                collection_name=self.review_collection, # FIXME IncludeReview
+                payload={"is_full": self.is_full},
+                points=[search_include_review[0].id]
+            )
         
     def get_without_review(self):
         search, _ = self.qdrant_client.scroll(
-            collection_name=self.qdrant_collection,  # FIXME WithoutReview
+            collection_name=self.tag_collection,  # FIXME WithoutReview
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -147,12 +154,10 @@ class ChangeFlag:
 
         if search:
             return search[0].payload
-        else:
-            raise ValueError(f"info_id: {self.info_id}에 해당하는 데이터가 존재하지 않습니다.")
         
     def get_include_review(self):
         search, _ = self.qdrant_client.scroll(
-            collection_name=self.qdrant_collection,  # FIXME IncludeReview
+            collection_name=self.review_collection,  # FIXME IncludeReview
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -166,6 +171,4 @@ class ChangeFlag:
 
         if search:
             return search[0].payload
-        else:
-            raise ValueError(f"info_id: {self.info_id}에 해당하는 데이터가 존재하지 않습니다.")
 

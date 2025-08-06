@@ -1,60 +1,38 @@
 from flask import Blueprint, request, jsonify, Response
 import json
 from collections import OrderedDict
-from typing import Optional
-from pydantic import BaseModel, ValidationError
-from service.data_embed import TagAndClassDataEmbedding, ReviewDataEmbedding
-import datetime
+from service.data_embed import WithoutReview, IncludeReview
 from controller.response_builder import ResponseBuilder
 
 save_bp = Blueprint("save", __name__, url_prefix="/ai/save")
 
-class SaveWithoutReviewReq(BaseModel):
-      info_id: Optional[int]
-      class_name: Optional[str]
-      tag: Optional[list[str]]
-      is_full: Optional[bool]
 
-      def getInfoId(self):
-            return self.info_id
-      def getTag(self):
-            return self.tag
-      def getClassName(self):
-            return self.class_name
-      def getIsFull(self):
-            return self.is_full
-      
-class SaveReview(BaseModel):
-      info_id: int
-      user_id: int
-      review: str
-
-      def getInfoId(self):
-            return self.info_id
-      def getUserId(self):
-            return self.user_id
-      def getReview(self):
-            return self.review
-
-@save_bp.route("/withoutReview", methods=["POST"])
-def save_without_review():
-      print("withoutReview 컨트롤러 진입")
+@save_bp.route("/includeReview", methods=["POST"])
+def save_include_review():
+      print("include_eview 컨트롤러 진입")
       try :
             body = OrderedDict([
             ("info_id", request.json.get("info_id")),
-            ("class_name", request.json.get("class_name")),
+            ("title", request.json.get("title")),
             ("tag", request.json.get("tag")),
+            ("user_id", request.json.get("user_id")),
+            ("review", request.json.get("review")),
             ("is_full", request.json.get("is_full"))
             ])
 
-            data = SaveWithoutReviewReq(**request.json)
-      except ValidationError as e:
+            for value in list(body.values()):
+                  # list(body.values())[0]
+                  # list(body.values())[1] ...
+                  if value is None:
+                        raise ValueError
+            
+      except ValueError:
             return Response(json.dumps(
                         ResponseBuilder()
                         .is_success(False)
                         .code("FLASK_INVALID_REQUEST_400")
                         .http_status(400)
-                        .message("info_id, tag, class_name, is_full은 모두 필수값입니다.")
+                        .message("info_id, title, tag, user_id, review, is_full은 모두 필수값입니다.")
                         .data(body)
                         .time_stamp()
                         .build(), ensure_ascii=False),
@@ -73,7 +51,12 @@ def save_without_review():
                         status=400,
                         mimetype="application/json")
     
-      embed = TagAndClassDataEmbedding(data.getInfoId(), data.getTag(), data.getClassName())
+      embed = IncludeReview(("info_id", request.json.get("info_id")),
+                            ("title", request.json.get("title")),
+                            ("tag", request.json.get("tag")),
+                            ("user_id", request.json.get("user_id")),
+                            ("review", request.json.get("review")),
+                            ("is_full", request.json.get("is_full")))
 
       embed.save()
       
@@ -89,23 +72,27 @@ def save_without_review():
                   status=201,
                   mimetype="application/json")
 
-@save_bp.route("/review", methods=["POST"])
-def save_review():
-      print("review 컨트롤러 진입")
+@save_bp.route("/tag", methods=["POST"])
+def save_tag():
+      print("tag 컨트롤러 진입")
       try:
-            data = SaveReview(**request.json)
-      except ValidationError as e:
             body = OrderedDict([
             ("info_id", request.json.get("info_id")),
-            ("user_id", request.json.get("user_id")),
-            ("review", request.json.get("review"))
+            ("tag", request.json.get("tag")),
+            ("is_full", request.json.get("is_full"))
             ])
+
+            for value in list(body.values()):
+                  if value is None:
+                        raise ValueError
+      except ValueError:
+            
             return Response(json.dumps(
                   ResponseBuilder()
                   .is_success(False)
                   .code("FLASK_INVALID_REQUEST_400")
                   .http_status(400)
-                  .message("info_id, user_id, review는 필수값입니다.")
+                  .message("info_id, tag, is_full은 필수값입니다.")
                   .data(body)
                   .time_stamp()
                   .build()
@@ -113,11 +100,7 @@ def save_review():
             status=400,
             mimetype="application/json")
       except UnboundLocalError as e:
-            body = OrderedDict([
-            ("info_id", request.json.get("info_id")),
-            ("user_id", request.json.get("user_id")),
-            ("review", request.json.get("review"))
-            ])
+            
             return Response(json.dumps(
                   ResponseBuilder()
                   .is_success(False)
@@ -131,14 +114,7 @@ def save_review():
             status=400,
             mimetype="application/json")
 
-            
-      body = OrderedDict([
-            ("info_id", data.getInfoId()),
-            ("user_id", data.getUserId()),
-            ("review", data.getReview())
-      ])
-
-      embed = ReviewDataEmbedding(data.getInfoId(), data.getUserId(), data.getReview())
+      embed = WithoutReview(list(body.values())[0], list(body.values())[1], list(body.values())[2])
 
       embed.save()
       
