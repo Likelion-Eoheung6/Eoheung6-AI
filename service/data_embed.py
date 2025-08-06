@@ -73,7 +73,7 @@ class WithoutReview:
                 id=str(uuid.uuid4()),
                 vector=response,
                 payload={"info": self.info_id,
-                         "tag": self.tag
+                         "tag": self.tag,
                          "is_full": self.is_full
                          }
                 )
