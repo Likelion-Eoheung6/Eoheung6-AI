@@ -1,16 +1,7 @@
-import os
 import uuid
 from custom_error.qdrant_info_id_not_found_error import QdrantInfoIdNotFoundError
 from common.config.qdrant_config import qdrant_client, openai_client, tag_collection, detail_collection
 from qdrant_client.models import PointStruct, models
-from dotenv import load_dotenv
-from openai import OpenAI
-
-# 유저의 선호 태그를 Vector Embedding
-# 유저의 고유 ID (MySQL Primary Key)로 식별
-
-load_dotenv()
-
 
 class IncludeReview:
     def __init__(self, info_id: int, title: str, tag: list[str], user_id:int, review:str, is_full: bool):

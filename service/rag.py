@@ -1,7 +1,3 @@
-import uuid
-import os
-from dotenv import load_dotenv
-from openai import OpenAI
 from custom_error.user_not_found_error import UserNotFoundError
 from common.config.qdrant_config import qdrant_client, openai_client, detail_collection, tag_collection
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
@@ -107,25 +103,21 @@ class RagAnswer:
                     ) for vector in data
                 ]
             )
-        try:
-            final_results = {}
-            for result_list in search:
-                for hit in result_list:
-                # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
-                    if hit.id not in final_results or hit.score > final_results[hit.id].score:
-                        final_results[hit.id] = hit
+        final_results = {}
+        for result_list in search:
+            for hit in result_list:
+            # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
+                if hit.id not in final_results or hit.score > final_results[hit.id].score:
+                    final_results[hit.id] = hit
 
         # 3. 딕셔너리의 값들만 추출하여 점수(score) 기준으로 내림차순 정렬합니다.
-            sorted_results = sorted(final_results.values(), key=lambda x: x.score, reverse=True)
+        sorted_results = sorted(final_results.values(), key=lambda x: x.score, reverse=True)
 
         # 4. 최종적으로 정렬된 상위 N개의 결과를 사용합니다.
-            top_10_results = sorted_results[:10]
-            print(f"top_10_result={top_10_results}")
-            
-            if top_10_results is not None:
-                return top_10_results
-            else:
-                return "top_10_results 없더라고요"
-        except Exception as e:
-            print(f"rag.py 내부 catch, {e}")
-            return None
+        top_10_results = sorted_results[:10]
+        print(f"top_10_result={top_10_results}")
+        
+        if top_10_results is not None:
+            return top_10_results
+        else:
+            raise RuntimeError(f"result={top_10_results}, 반환할 값이 없습니다.")

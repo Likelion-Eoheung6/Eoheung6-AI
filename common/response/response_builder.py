@@ -1,4 +1,3 @@
-import datetime
 
 class ResponseBuilder:
     def __init__(self):

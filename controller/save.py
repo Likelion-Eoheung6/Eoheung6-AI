@@ -1,16 +1,14 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, Response
 import json
 from collections import OrderedDict
 
 import openai
 from pydantic import ValidationError
-from common.constant import StaticValue
 from common.response.success_response import SuccessResponse
 from custom_error.openai_connection_failed_error import OpenAIConnectionFailedError
 from custom_error.openai_illegal_state import OpenAIIllegalStateError
 from custom_error.openai_rate_limit import OpenAIRateLimitError
 from service.data_embed import WithoutReview, IncludeReview
-from common.response.response_builder import ResponseBuilder
 
 save_bp = Blueprint("save", __name__, url_prefix="/ai/save")
 

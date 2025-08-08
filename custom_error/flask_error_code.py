@@ -1,5 +1,3 @@
-from enum import Enum
-
 from common.response.code.base_response_code import BaseResponseCode, Basic
 
 class FlaskErrorCode(BaseResponseCode, Basic):
