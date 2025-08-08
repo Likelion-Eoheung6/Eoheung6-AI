@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy import JSON
 from service.config.sql_alchemy import db
 
@@ -9,7 +10,7 @@ class User(db.Model):
     id = db.Column(db.String(255))
     password = db.Column(db.String(255))
     email = db.Column(db.String(255))
-    phone = db.Column(db.String(255))
+    phone_number = db.Column(db.String(255))
 
 class ClassOpen(db.Model):
     # 클래스 개설 일정 인스턴스화
@@ -59,4 +60,18 @@ class Review(db.Model):
     user = db.relationship('User', backref = 'who_commented')
     open = db.relationship('ClassOpen', backref = 'when_learn')
 
+class Tag(db.Model):
+    __tablename__ = "tag"
 
+    tag_id = db.Column(db.BigInteger, primary_key = True)
+    genre = db.Column(db.String(255))
+
+class PreferTag(db.Model):
+    __tablename__ = "prefer_tag"
+
+    id = db.Column(db.BigInteger, primary_key = True)
+    tag_id = db.Column(db.BigInteger, db.ForeignKey('tag.tag_id'))
+    user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'))
+
+    tag = db.relationship('Tag', backref = 'content')
+    user = db.relationship('User', backref = 'who_choose')

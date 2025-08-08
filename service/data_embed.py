@@ -20,12 +20,13 @@ class IncludeReview:
         self.tag = tag
         self.title = title
         self.user_id = user_id
-        self.review = review
+        # self.review = review
         self.is_full = is_full
 
-    def save(self) -> None:
+    def save(self):
 
-        text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, user_id: {self.user_id}, review: {self.review}, is_full {self.is_full}"
+        # text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, user_id: {self.user_id}, review: {self.review}, is_full {self.is_full}"
+        text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, user_id: {self.user_id}, is_full {self.is_full}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -33,21 +34,20 @@ class IncludeReview:
         ).data[0].embedding
 
         self.qdrant_client.upsert(
-        collection_name=self.review_collection,
-        points=[
-            PointStruct(
-                id=str(uuid.uuid4()),
-                vector=response,
-                payload={"info_id": self.info_id,
-                         "title": self.title,
-                         "tag": self.tag,
-                         "user_id": self.user_id,
-                         "review": self.review,
-                         "is_full": self.is_full
+            collection_name=self.review_collection,
+            points=[
+                PointStruct(
+                    id=str(uuid.uuid4()),
+                    vector=response,
+                    payload={"info_id": self.info_id,
+                             "title": self.title,
+                             "tag": self.tag,
+                             "is_full": self.is_full
                          }
-            )
-        ]
-    )
+                )
+            ]
+        )
+        return text
 
 class WithoutReview:
     def __init__(self, info_id: int, tag: list[str], is_full: bool):
@@ -58,7 +58,7 @@ class WithoutReview:
         self.tag = tag
         self.is_full = is_full
     
-    def save(self) -> None:
+    def save(self):
         text = f"info_id: {self.info_id}, tag: {self.tag}, is_full: {self.is_full}"
 
         response = self.openai_client.embeddings.create(
@@ -79,6 +79,8 @@ class WithoutReview:
                 )
             ]
         )
+
+        return text
     
 
 class ChangeFlag:

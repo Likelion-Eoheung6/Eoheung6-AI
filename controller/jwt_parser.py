@@ -13,7 +13,6 @@ class JwtParser:
             token = auth_header.split(" ")[1]
         else:
             token = None
-
         return token
     
 class JwtDecorder:
@@ -22,11 +21,6 @@ class JwtDecorder:
         self.secret_key = os.getenv("JWT_SECRET")
         self.token = token
     def decode(self):
-        try:
-            payload = jwt.decode(self.token, self.secret_key, algorithms=["HS512"])
-        except jwt.ExpiredSignatureError:
-            raise ValueError("만료된 토큰입니다.")
-        except jwt.InvalidTokenError:
-            raise ValueError("유효하지 않은 토큰")
+        payload = jwt.decode(self.token, self.secret_key, algorithms=["HS512"])
         
         return payload

@@ -1,16 +1,15 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask
+from common.error import global_error_handler
 from service.config.qdrant_config import init_qdrant_collection
 from service.config.sql_alchemy import db
-from service.model.class_model import ClassInfo, ClassOpen
-
+from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, Review
 
 def create_app():
     load_dotenv()
 
     app = Flask(__name__)
-
     MYSQL_URL = os.environ.get("DATABASE_URL")
 
     app.config['SQLALCHEMY_DATABASE_URI'] = MYSQL_URL
@@ -22,8 +21,10 @@ def create_app():
     # Qdrant ddl-auto = create로 설정
     init_qdrant_collection()
 
-    # 컨트롤러 등록
+    # 전역 예외 등록
+    global_error_handler.GlobalErrorHandler(app)
 
+    # 컨트롤러 등록
     print("컨트롤러 진입")
 
     from controller.save import save_bp
