@@ -13,7 +13,7 @@ from service.data_embed import WithoutReview, IncludeReview
 save_bp = Blueprint("save", __name__, url_prefix="/ai/save")
 
 
-@save_bp.route("/includeReview", methods=["POST"])
+@save_bp.route("/detail", methods=["POST"])
 def save_include_review():
       print("include_eview 컨트롤러 진입")
       body = OrderedDict([
@@ -26,12 +26,11 @@ def save_include_review():
       for value in list(body.values()):
             if value is None:
                   raise ValidationError
-            
+      print(f"info_id={request.json.get("info_id")}, title={request.json.get("title")}, tag={request.json.get("tag")}, is_full={request.json.get("is_full")}")
+
       embed = IncludeReview(request.json.get("info_id"),
                             request.json.get("title"),
                             request.json.get("tag"),
-                            request.json.get("user_id"),
-                            request.json.get("review"),
                             request.json.get("is_full"))
 
       try:

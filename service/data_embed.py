@@ -4,20 +4,17 @@ from common.config.qdrant_config import qdrant_client, openai_client, tag_collec
 from qdrant_client.models import PointStruct, models
 
 class IncludeReview:
-    def __init__(self, info_id: int, title: str, tag: list[str], user_id:int, review:str, is_full: bool):
+    def __init__(self, info_id: int, title: str, tag: list[str], is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.detail_collection = detail_collection
         self.info_id = info_id
         self.tag = tag
         self.title = title
-        self.user_id = user_id
         self.is_full = is_full
 
     def save(self):
-
-        # text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, user_id: {self.user_id}, review: {self.review}, is_full {self.is_full}"
-        text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, user_id: {self.user_id}, is_full {self.is_full}"
+        text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, is_full: {self.is_full}"
 
         response = self.openai_client.embeddings.create(
             input=text,
