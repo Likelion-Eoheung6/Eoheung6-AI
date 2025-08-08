@@ -9,7 +9,8 @@ class FlaskErrorCode(BaseResponseCode, Basic):
     QDRANT_CONNECTION_FAILED = ("QDRANT_CONNECTION_FAILED_503", 503, "Qdarnt Database와 연결에 실패했습니다.")
     QDRANT_INFO_ID_NOT_FOUND = ("QDRANT_INFO_ID_NOT_FOUND_404", 404, "해당 info_id의 노드를 조회할 수 없습니다.")
     OPENAI_CONNECTION_FAILED = ("OPENAI_CONNECTION_FAILED_503", 503, "OpenAI API 서버와의 연결에 실패했습니다.")
-    OPENAI_RATE_LIMIT = ("OPENAI_RATE_LIMIT_402", 402, "API Key의 금일 허용 한도 넘는 요청입니다.")
+    OPENAI_RATE_LIMIT = ("OPENAI_RATE_LIMIT_402", 402, "해당 API Key에 할당된 한계 호출 횟수를 넘겼습니다.")
+    OPENAI_ILLEGAL_STATE_ERROR =  ("OPENAI_ILLEGAL_STATE_ERROR_", 400, "잘못된 API Key 호출, 또는 만료된 API Key를 사용중입니다.")
 
     def __init__(self, code, http_status, message):
         self._code = code

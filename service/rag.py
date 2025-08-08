@@ -3,10 +3,10 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from custom_error.user_not_found_error import UserNotFoundError
-from service.config.qdrant_config import qdrant_client, openai_client, review_collection, tag_collection
+from common.config.qdrant_config import qdrant_client, openai_client, detail_collection, tag_collection
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
 import numpy as np
-from service.config.sql_alchemy import db
+from common.config.sql_alchemy import db
 from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User
 
 
@@ -14,7 +14,7 @@ class RagAnswer:
     def __init__(self, user_id: int):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
-        self.review_collection = review_collection
+        self.detail_collection = detail_collection
         self.tag_collection = tag_collection
         self.user_id = user_id
     
@@ -93,7 +93,7 @@ class RagAnswer:
             data.append(embedding)
             
             search = self.qdrant_client.search_batch(
-                collection_name=self.review_collection,
+                collection_name=self.detail_collection,
                 requests=[
                     models.SearchRequest(
                         vector=vector,

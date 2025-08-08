@@ -22,7 +22,7 @@ qdrant_client = QdrantClient(host="localhost", port=6333)
 
 # RDB Table = Collection
 tag_collection = "tag"
-review_collection = "review"
+detail_collection = "detail"
 
 
 def init_qdrant_collection():
@@ -32,15 +32,15 @@ def init_qdrant_collection():
             collection_name=tag_collection,
             vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
         )
-    if not qdrant_client.collection_exists(review_collection):
+    if not qdrant_client.collection_exists(detail_collection):
         qdrant_client.recreate_collection(
-            collection_name=review_collection,
+            collection_name=detail_collection,
             vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
         )
 
     try:
         qdrant_client.collection_exists(tag_collection)
-        qdrant_client.collection_exists(review_collection)
+        qdrant_client.collection_exists(detail_collection)
     except httpx.ConnectError:
         raise QdrantConnectionFailedError()
 

@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 from flask import Flask
 from common.error import global_error_handler
-from service.config.qdrant_config import init_qdrant_collection
-from service.config.sql_alchemy import db
+from common.config.qdrant_config import init_qdrant_collection
+from common.config.sql_alchemy import db
 from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, Review
 
 def create_app():

@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy import JSON
-from service.config.sql_alchemy import db
+from common.config.sql_alchemy import db
 
 
 class User(db.Model):

@@ -13,7 +13,7 @@ from custom_error.openai_illegal_state import OpenAIIllegalStateError
 from custom_error.openai_rate_limit import OpenAIRateLimitError
 from custom_error.user_not_found_error import UserNotFoundError
 from service.rag import RagAnswer
-from service.config.sql_alchemy import db
+from common.config.sql_alchemy import db
 from service.model.class_model import User
 
 

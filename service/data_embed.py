@@ -1,7 +1,7 @@
 import os
 import uuid
 from custom_error.qdrant_info_id_not_found_error import QdrantInfoIdNotFoundError
-from service.config.qdrant_config import qdrant_client, openai_client, tag_collection, review_collection
+from common.config.qdrant_config import qdrant_client, openai_client, tag_collection, detail_collection
 from qdrant_client.models import PointStruct, models
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -16,12 +16,11 @@ class IncludeReview:
     def __init__(self, info_id: int, title: str, tag: list[str], user_id:int, review:str, is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
-        self.review_collection = review_collection
+        self.detail_collection = detail_collection
         self.info_id = info_id
         self.tag = tag
         self.title = title
         self.user_id = user_id
-        # self.review = review
         self.is_full = is_full
 
     def save(self):
@@ -35,7 +34,7 @@ class IncludeReview:
         ).data[0].embedding
 
         self.qdrant_client.upsert(
-            collection_name=self.review_collection,
+            collection_name=self.detail_collection,
             points=[
                 PointStruct(
                     id=str(uuid.uuid4()),
@@ -88,7 +87,7 @@ class ChangeFlag:
     def __init__(self, info_id:int, is_full: bool):
         self.qdrant_client = qdrant_client
         self.tag_collection = tag_collection
-        self.review_collection = review_collection
+        self.detail_collection = detail_collection
         self.info_id = info_id
         self.is_full = is_full
 
@@ -107,7 +106,7 @@ class ChangeFlag:
         )
 
         search_include_review, _ = self.qdrant_client.scroll(
-            collection_name=self.review_collection, # FIXME IncludeReview Collection
+            collection_name=self.detail_collection, # FIXME IncludeReview Collection
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -127,13 +126,13 @@ class ChangeFlag:
         search2 = search_include_review[0].payload.get("is_full") if search_include_review else None
         if search_without_review:
             self.qdrant_client.set_payload(
-                collection_name=self.tag_collection
+                collection_name=self.tag_collection,
                 payload={"is_full": self.is_full},
                 points=[search_without_review[0].id]
             )
         if search_include_review:
             self.qdrant_client.set_payload(
-                collection_name=self.review_collection
+                collection_name=self.detail_collection,
                 payload={"is_full": self.is_full},
                 points=[search_include_review[0].id]
             )
@@ -157,7 +156,7 @@ class ChangeFlag:
         
     def get_include_review(self):
         search, _ = self.qdrant_client.scroll(
-            collection_name=self.review_collection,  # FIXME IncludeReview
+            collection_name=self.detail_collection,  # FIXME IncludeReview
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
