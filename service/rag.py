@@ -1,27 +1,123 @@
-import uuid
-import os
-from dotenv import load_dotenv
-from openai import OpenAI
-from service.config.qdrant_config import qdrant_client, openai_client, qdrant_collection
+from custom_error.user_not_found_error import UserNotFoundError
+from common.config.qdrant_config import qdrant_client, openai_client, detail_collection, tag_collection
+from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
+import numpy as np
+from common.config.sql_alchemy import db
+from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User
 
 
 class RagAnswer:
-    def __init__(self):
+    def __init__(self, user_id: int):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
-        self.qdrant_collection = qdrant_collection
+        self.detail_collection = detail_collection
+        self.tag_collection = tag_collection
+        self.user_id = user_id
     
-    def call(self, tag: str, class_name: str, review: str) -> None:
-        data = f" \"tag\": {tag}, \"class_name\": {class_name}, \"review\": {review}"
+    def call(self):
+        user = db.session.query(User).filter(User.user_id == self.user_id).first()
+        if user:
+            self.user_id = user.user_id
+            # 현재 오픈 중인 클래스 중에서, user_id가
+            # 로그인 된 user_id와 같을 경우
+            # 제외하는 로직 성공
+            # self.user_id = 2
+        else:
+            raise UserNotFoundError()
 
-        embed_query = openai_client.embeddings.create(
-            input=data,
-            model="text-embedding-3-small"
-        ).data[0].embedding
+        # 이전에 수강했던 클래스가 없는 경우
+        if db.session.query(ClassHistory).filter(ClassHistory.user_id == self.user_id).first() is None:
+            print("이전에 수강했던 클래스가 없는 경우로 진입")
+            # 본인이 개설한 클래스는 제외하는 user_id 쿼리
+            exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
+            print(f"exclude_record={exclude_record}")
+            exclude_id = [item.info_id for item in exclude_record]
+            print(f"exclude_id={exclude_id}")
+            
+            print(f"user_id={self.user_id}")
 
-        search_result = qdrant_client.search(
-            collection_name=qdrant_collection,
-            query_vector=embed_query,
-            limit=1
-        )
-        return [result.payload for result in search_result]
+            whole_tag = db.session.query(PreferTag).join(Tag).filter(PreferTag.user_id == self.user_id).all()
+            print(f"whole_tag={whole_tag}")
+            prefer_tag = [tags.tag.genre for tags in whole_tag]
+            print(f"prefer_tag={prefer_tag}")
+
+            data = f"tag: {prefer_tag}"
+            # ---------- 막힘 ----------
+            response = self.openai_client.embeddings.create(
+                input=data,
+                model="text-embedding-3-small"
+            ).data[0].embedding
+
+            
+            search= self.qdrant_client.search(
+                collection_name=self.tag_collection,
+                query_vector=response,
+                limit = 6,
+                query_filter= Filter(
+                    must_not = [
+                        FieldCondition(
+                            key="info_id",
+                            match=MatchAny(any=exclude_id)
+                        ),
+                        FieldCondition(
+                            key="is_full",
+                            match=MatchValue(value=True)
+                        )
+                    ]
+                )
+            )
+            try:
+                search = [search]
+            except Exception as e:
+                print(f"batch 변환 실패 {str(e)}")
+        # 2. 수강 이력은 있고, 리뷰는 없음
+        elif db.session.query(Review).filter(Review.user_id == self.user_id).first() is None:
+            print("이전에 수강했던 클래스가 있는 경우로 진입")
+            history = db.session.query(ClassHistory).join(ClassOpen).filter(ClassHistory.user_id == self.user_id).order_by(ClassOpen.open_at.desc()).limit(3).all()
+
+            data = []
+            for item in history:
+                # f-string으로 임베딩할 텍스트를 생성
+                data_string = f"tag: {item.class_info.tag}, title: {item.class_info.title}"
+    
+                # 임베딩 생성
+                embedding = self.openai_client.embeddings.create(
+                    input=data_string,
+                    model="text-embedding-3-small"
+                ).data[0].embedding
+
+            data.append(embedding)
+            
+            search = self.qdrant_client.search_batch(
+                collection_name=self.detail_collection,
+                requests=[
+                    models.SearchRequest(
+                        vector=vector,
+                        limit=6, # 각 쿼리 벡터마다 10개의 결과를 가져옵니다.
+                        filter=Filter(
+                            must_not=[
+                                FieldCondition(key="user_id", match=MatchValue(value=int(self.user_id))),
+                                FieldCondition(key="is_full", match=MatchValue(value=True))
+                            ]
+                        )
+                    ) for vector in data
+                ]
+            )
+        final_results = {}
+        for result_list in search:
+            for hit in result_list:
+            # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
+                if hit.id not in final_results or hit.score > final_results[hit.id].score:
+                    final_results[hit.id] = hit
+
+        # 3. 딕셔너리의 값들만 추출하여 점수(score) 기준으로 내림차순 정렬합니다.
+        sorted_results = sorted(final_results.values(), key=lambda x: x.score, reverse=True)
+
+        # 4. 최종적으로 정렬된 상위 N개의 결과를 사용합니다.
+        top_10_results = sorted_results[:10]
+        print(f"top_10_result={top_10_results}")
+        
+        if top_10_results is not None:
+            return top_10_results
+        else:
+            raise RuntimeError(f"result={top_10_results}, 반환할 값이 없습니다.")

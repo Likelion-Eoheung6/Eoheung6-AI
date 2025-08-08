@@ -1,38 +1,44 @@
 from flask import Blueprint, request, Response
 import json
-from collections import OrderedDict
+
+import openai
+from common.response.success_response import SuccessResponse
+from controller.jwt_parser import JwtParser, JwtDecorder
+from custom_error.openai_connection_failed_error import OpenAIConnectionFailedError
+from custom_error.openai_illegal_state import OpenAIIllegalStateError
+from custom_error.openai_rate_limit import OpenAIRateLimitError
 from service.rag import RagAnswer
-import datetime
+from common.config.sql_alchemy import db
+from service.model.class_model import User
 
 
 call_bp = Blueprint("get_answer", __name__, url_prefix="/ai")
 
-@call_bp.route("/call", methods=["POST"])
+@call_bp.route("/call", methods=["GET"])
 def save_data():
-    call = RagAnswer()
+      print("save_data 컨트롤러 호출")
+      token = JwtDecorder(JwtParser(request).parse()).decode()
+      login_user_id = token['id']
 
-    tag = request.json.get("tag")
-    class_name = request.json.get("class")
-    review = request.json.get("review")
+      query = db.session.query(User.user_id).filter(User.id == login_user_id).first()
+      if query:
+            user_id = query[0]
+            user_id = int(user_id)
 
-    body = OrderedDict([
-            ("tag", tag),
-            ("class_name", class_name),
-            ("review", review)
-      ])
 
-    res = call.call(tag, class_name, review)
+      call = RagAnswer(user_id)
+      try:
+            res = call.call()
+      except openai.APIConnectionError:
+            raise OpenAIConnectionFailedError()
+      except openai.RateLimitError:
+            raise OpenAIRateLimitError()
+      except openai.APIStatusError:
+            raise OpenAIIllegalStateError()
+      
+      result = [item.payload.get("info_id") for item in res]
 
-    response_data = {
-            "isSuccess": True,
-            "code": "FLASK_200",
-            "httpStatus": 200,
-            "message": "RAG 검색 결과입니다.",
-            "data": res,
-            "timeStamp": datetime.datetime.now().isoformat()
-      }
-    return Response(
-            json.dumps(response_data, ensure_ascii=False),
-            status=200,
-            mimetype="application/json"
-      )
+
+      return Response(json.dumps(SuccessResponse.ok(result).convert(), ensure_ascii=False, sort_keys=False),
+                        status = 200,
+                        mimetype="application/json")
