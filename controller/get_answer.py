@@ -1,11 +1,16 @@
 from flask import Blueprint, jsonify, request, Response
 import json
 from collections import OrderedDict
+
+import openai
 from common.constant import StaticValue
 from common.response.error_response import ErrorResponse
 from common.response.success_response import SuccessResponse
 from common.response.response_builder import ResponseBuilder
 from controller.jwt_parser import JwtParser, JwtDecorder
+from custom_error.openai_connection_failed_error import OpenAIConnectionFailedError
+from custom_error.openai_illegal_state import OpenAIIllegalStateError
+from custom_error.openai_rate_limit import OpenAIRateLimitError
 from custom_error.user_not_found_error import UserNotFoundError
 from service.rag import RagAnswer
 from service.config.sql_alchemy import db
@@ -27,15 +32,18 @@ def save_data():
 
 
       call = RagAnswer(user_id)
-      
-      res = call.call()
+      try:
+            res = call.call()
+      except openai.APIConnectionError:
+            raise OpenAIConnectionFailedError()
+      except openai.RateLimitError:
+            raise OpenAIRateLimitError()
+      except openai.APIStatusError:
+            raise OpenAIIllegalStateError()
       
       result = [item.payload.get("info_id") for item in res]
-      print(f"top_10_info_id={result}")
 
-      # error_response = ErrorResponse.of(e.base_response_code)
-      # return jsonify(error_response.convert()), e.base_response_code.http_status
 
-      return Response(json.dumps(SuccessResponse.ok(result).convert(), ensure_ascii=False),
+      return Response(json.dumps(SuccessResponse.ok(result).convert(), ensure_ascii=False, sort_keys=False),
                         status = 200,
                         mimetype="application/json")

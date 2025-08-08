@@ -1,5 +1,6 @@
 import os
 import uuid
+from custom_error.qdrant_info_id_not_found_error import QdrantInfoIdNotFoundError
 from service.config.qdrant_config import qdrant_client, openai_client, tag_collection, review_collection
 from qdrant_client.models import PointStruct, models
 from dotenv import load_dotenv
@@ -93,7 +94,7 @@ class ChangeFlag:
 
     def change(self) -> None:
         search_without_review, _ = self.qdrant_client.scroll(
-            collection_name=self.tag_collection, # FIXME WithoutReview Collection
+            collection_name=self.tag_collection,
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -120,22 +121,19 @@ class ChangeFlag:
         
         
         if not search_without_review and not search_include_review:
-            raise ValueError(f"info_id={self.info_id} 에 해당하는 데이터가 없습니다.")
+            raise QdrantInfoIdNotFoundError
         
         search1 = search_without_review[0].payload.get("is_full") if search_without_review else None
         search2 = search_include_review[0].payload.get("is_full") if search_include_review else None
-        if  search1 == self.is_full or search2 == self.is_full:
-            raise ValueError(f"is_full 값이 이미 {self.is_full} 입니다.")
-
         if search_without_review:
             self.qdrant_client.set_payload(
-                collection_name=self.tag_collection, # FIXME WithoutReview
+                collection_name=self.tag_collection
                 payload={"is_full": self.is_full},
                 points=[search_without_review[0].id]
             )
         if search_include_review:
             self.qdrant_client.set_payload(
-                collection_name=self.review_collection, # FIXME IncludeReview
+                collection_name=self.review_collection
                 payload={"is_full": self.is_full},
                 points=[search_include_review[0].id]
             )
