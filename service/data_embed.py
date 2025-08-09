@@ -1,10 +1,12 @@
+from collections import OrderedDict
 import uuid
 from custom_error.qdrant_info_id_not_found_error import QdrantInfoIdNotFoundError
 from common.config.qdrant_config import qdrant_client, openai_client, tag_collection, detail_collection
 from qdrant_client.models import PointStruct, models
 
 class IncludeReview:
-    def __init__(self, info_id: int, title: str, tag: list[str], is_full: bool):
+    def __init__(self, info_id, title: str, tag: list[str], is_full):
+        print(f"info_id={info_id}, is_full={is_full}")
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.detail_collection = detail_collection
@@ -14,8 +16,8 @@ class IncludeReview:
         self.is_full = is_full
 
     def save(self):
-        text = f"info_id: {self.info_id}, title: {self.title}, tag: {self.tag}, is_full: {self.is_full}"
-
+        text = f"infoId: {self.info_id}, title: {self.title}, tag: {self.tag}, isFull: {self.is_full}"
+        print(f"infoId={self.info_id}, title={self.title}, tag={self.tag}, isFull={self.is_full}")
         response = self.openai_client.embeddings.create(
             input=text,
             model="text-embedding-3-small"
@@ -35,7 +37,12 @@ class IncludeReview:
                 )
             ]
         )
-        return text
+        return OrderedDict([
+            ("infoId", self.info_id),
+            ("title", self.title),
+            ("tag", self.tag),
+            ("isFull", self.is_full)
+        ])
 
 class WithoutReview:
     def __init__(self, info_id: int, tag: list[str], is_full: bool):
@@ -47,7 +54,7 @@ class WithoutReview:
         self.is_full = is_full
     
     def save(self):
-        text = f"info_id: {self.info_id}, tag: {self.tag}, is_full: {self.is_full}"
+        text = f"infoId: {self.info_id}, tag: {self.tag}, isFull: {self.is_full}"
 
         response = self.openai_client.embeddings.create(
             input=text,
@@ -68,7 +75,11 @@ class WithoutReview:
             ]
         )
 
-        return text
+        return OrderedDict([
+            ("infoId", self.info_id),
+            ("tag", self.tag),
+            ("isFull", self.is_full)
+        ])
     
 
 class ChangeFlag:

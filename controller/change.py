@@ -14,10 +14,10 @@ from service.data_embed import ChangeFlag
 
 change_bp = Blueprint("change_is_full_glag", __name__, url_prefix="/ai")
 
-@change_bp.route("/change", methods=["POST"])
+@change_bp.route("/change", methods=["PATCH"])
 def change_is_full_flag():
-    info_id = request.json.get("info_id")
-    is_full = request.json.get("is_full")
+    info_id = request.json.get("infoId")
+    is_full = request.json.get("isFull")
 
     body = OrderedDict([
             ("info_id", info_id),
@@ -25,7 +25,7 @@ def change_is_full_flag():
         ])
 
     if(info_id is None or is_full is None):
-        raise ValidationError
+        raise ValueError("None인 필드가 존재합니다.")
     
     change = ChangeFlag(info_id, is_full)
     try:

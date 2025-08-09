@@ -86,18 +86,26 @@ class RagAnswer:
                     model="text-embedding-3-small"
                 ).data[0].embedding
 
-            data.append(embedding)
+                data.append(embedding)
             
+            # 이전에 수강했던 클래스를 제외할 수 있도록 필터링 리스트 생성
+            history_id = [item.class_info.info_id for item in history]
+
+
             search = self.qdrant_client.search_batch(
                 collection_name=self.detail_collection,
                 requests=[
                     models.SearchRequest(
                         vector=vector,
                         limit=6, # 각 쿼리 벡터마다 10개의 결과를 가져옵니다.
-                        filter=Filter(
+                        filter=models.Filter(
                             must_not=[
-                                FieldCondition(key="user_id", match=MatchValue(value=int(self.user_id))),
-                                FieldCondition(key="is_full", match=MatchValue(value=True))
+                                models.FieldCondition(key="user_id", match=MatchValue(value=int(self.user_id))),
+                                models.FieldCondition(key="is_full", match=MatchValue(value=True)),
+                                models.FieldCondition(key="info_id",
+                                                      match=models.MatchAny(
+                                                          any=history_id
+                                                      ))
                             ]
                         )
                     ) for vector in data
@@ -106,9 +114,14 @@ class RagAnswer:
         final_results = {}
         for result_list in search:
             for hit in result_list:
-            # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
-                if hit.id not in final_results or hit.score > final_results[hit.id].score:
-                    final_results[hit.id] = hit
+                info_id = hit.payload.get("info_id")
+                if info_id is None:
+                    continue
+                # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
+                # if hit.id not in final_results or hit.score > final_results[hit.id].score:
+                if info_id not in final_results or hit.score > final_results[info_id].score:
+
+                    final_results[info_id] = hit
 
         # 3. 딕셔너리의 값들만 추출하여 점수(score) 기준으로 내림차순 정렬합니다.
         sorted_results = sorted(final_results.values(), key=lambda x: x.score, reverse=True)
