@@ -3,7 +3,7 @@ from common.config.qdrant_config import qdrant_client, openai_client, detail_col
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
 import numpy as np
 from common.config.sql_alchemy import db
-from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User
+from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User, EasyTag, PreferEasyTag
 
 
 class RagAnswer:
@@ -30,14 +30,17 @@ class RagAnswer:
             print("이전에 수강했던 클래스가 없는 경우로 진입")
             # 본인이 개설한 클래스는 제외하는 user_id 쿼리
             exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
-            print(f"exclude_record={exclude_record}")
+            # print(f"exclude_record={exclude_record}")
             exclude_id = [item.info_id for item in exclude_record]
-            print(f"exclude_id={exclude_id}")
+            # print(f"exclude_id={exclude_id}")
             
-            print(f"user_id={self.user_id}")
+            # print(f"user_id={self.user_id}")
 
-            whole_tag = db.session.query(PreferTag).join(Tag).filter(PreferTag.user_id == self.user_id).all()
-            print(f"whole_tag={whole_tag}")
+            normal_tag = db.session.query(PreferTag).join(Tag).filter(PreferTag.user_id == self.user_id).all()
+            easy_tag = db.session.query(PreferEasyTag).join(EasyTag).filter(PreferEasyTag.user_id == self.user_id).all()
+            
+            whole_tag = normal_tag + easy_tag
+
             prefer_tag = [tags.tag.genre for tags in whole_tag]
             print(f"prefer_tag={prefer_tag}")
 
@@ -70,8 +73,8 @@ class RagAnswer:
                 search = [search]
             except Exception as e:
                 print(f"batch 변환 실패 {str(e)}")
-        # 2. 수강 이력은 있고, 리뷰는 없음
-        elif db.session.query(Review).filter(Review.user_id == self.user_id).first() is None:
+        # 2. 수강 이력 있음
+        else:
             print("이전에 수강했던 클래스가 있는 경우로 진입")
             history = db.session.query(ClassHistory).join(ClassOpen).filter(ClassHistory.user_id == self.user_id).order_by(ClassOpen.open_at.desc()).limit(3).all()
 
