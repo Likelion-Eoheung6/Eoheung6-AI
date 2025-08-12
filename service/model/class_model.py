@@ -55,7 +55,6 @@ class Review(db.Model):
     user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'))
     open_id = db.Column(db.BigInteger, db.ForeignKey('class_open.id')) # FIXME id -> open_id
     score = db.Column(db.BigInteger)
-    comment = db.Column(db.String(255))
 
     user = db.relationship('User', backref = 'who_commented')
     open = db.relationship('ClassOpen', backref = 'when_learn')
