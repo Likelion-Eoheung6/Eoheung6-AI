@@ -53,7 +53,7 @@ def save_tag():
       body = OrderedDict([
             ("info_id", request.json.get("infoId")),
             ("tag", request.json.get("tag")),
-            ("is_full", request.json.get("infoId"))
+            ("is_full", request.json.get("isFull"))
             ])
 
       for value in list(body.values()):

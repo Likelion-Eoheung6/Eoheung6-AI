@@ -66,6 +66,12 @@ class Tag(db.Model):
     tag_id = db.Column(db.BigInteger, primary_key = True)
     genre = db.Column(db.String(255))
 
+class EasyTag(db.Model):
+    __tablename__ = "easy_tag"
+
+    tag_id = db.Column(db.BigInteger, primary_key = True)
+    genre = db.Column(db.String(255))
+
 class PreferTag(db.Model):
     __tablename__ = "prefer_tag"
 
@@ -74,4 +80,14 @@ class PreferTag(db.Model):
     user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'))
 
     tag = db.relationship('Tag', backref = 'content')
+    user = db.relationship('User', backref = 'who_choose')
+
+class PreferEasyTag(db.Model):
+    __tablename__ = "prefer_easy_tag"
+
+    id = db.Column(db.BigInteger, primary_key = True)
+    tag_id = db.Column(db.BigInteger, db.ForeignKey('tag.tag_id'))
+    user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'))
+
+    tag = db.relationship('EasyTag', backref = 'content')
     user = db.relationship('User', backref = 'who_choose')
