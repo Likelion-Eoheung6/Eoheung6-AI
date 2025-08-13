@@ -5,7 +5,7 @@ from common.config.qdrant_config import qdrant_client, openai_client, tag_collec
 from qdrant_client.models import PointStruct, models
 
 class IncludeReview:
-    def __init__(self, info_id, title: str, tag: list[str], is_full):
+    def __init__(self, info_id, title: str, tag: str, is_full):
         print(f"info_id={info_id}, is_full={is_full}")
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
@@ -45,7 +45,7 @@ class IncludeReview:
         ])
 
 class WithoutReview:
-    def __init__(self, info_id: int, tag: list[str], is_full: bool):
+    def __init__(self, info_id: int, tag: str, is_full: bool):
         self.openai_client = openai_client
         self.qdrant_client = qdrant_client
         self.tag_collection = tag_collection

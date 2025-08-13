@@ -15,7 +15,7 @@ save_bp = Blueprint("save", __name__, url_prefix="/ai/save")
 
 @save_bp.route("/detail", methods=["POST"])
 def save_include_review():
-      print("include_eview 컨트롤러 진입")
+      print("include_review 컨트롤러 진입")
       print(request.get_json())
       body = OrderedDict([
             ("info_id", request.json.get("infoId")),

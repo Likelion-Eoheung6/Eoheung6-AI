@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from flask import Flask
 from common.error import global_error_handler
@@ -33,6 +34,8 @@ def create_app():
     app.register_blueprint(save_bp)
     app.register_blueprint(call_bp)
     app.register_blueprint(change_bp)
+
+    app.logger.setLevel(logging.DEBUG)
 
     return app
 
