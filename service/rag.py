@@ -31,7 +31,7 @@ class RagAnswer:
             # 본인이 개설한 클래스는 제외하는 user_id 쿼리
             exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
             # print(f"exclude_record={exclude_record}")
-            exclude_id = [item.info_id for item in exclude_record]
+            exclude_id = [item.id for item in exclude_record]
             # print(f"exclude_id={exclude_id}")
             
             # print(f"user_id={self.user_id}")
