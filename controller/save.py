@@ -15,23 +15,24 @@ save_bp = Blueprint("save", __name__, url_prefix="/ai/save")
 
 @save_bp.route("/detail", methods=["POST"])
 def save_include_review():
-      print("include_eview 컨트롤러 진입")
+      print("include_review 컨트롤러 진입")
+      print(request.get_json())
       body = OrderedDict([
-            ("info_id", request.json.get("info_id")),
+            ("info_id", request.json.get("infoId")),
             ("title", request.json.get("title")),
             ("tag", request.json.get("tag")),
-            ("is_full", request.json.get("is_full"))
+            ("is_full", request.json.get("isFull"))
       ])
 
       for value in list(body.values()):
+            print(value)
             if value is None:
-                  raise ValidationError
-      print(f"info_id={request.json.get("info_id")}, title={request.json.get("title")}, tag={request.json.get("tag")}, is_full={request.json.get("is_full")}")
+                  raise ValueError("값이 None인 필드가 존재합니다.")
 
-      embed = IncludeReview(request.json.get("info_id"),
+      embed = IncludeReview(request.json.get("infoId"),
                             request.json.get("title"),
                             request.json.get("tag"),
-                            request.json.get("is_full"))
+                            request.json.get("isFull"))
 
       try:
             result = embed.save()
@@ -50,9 +51,9 @@ def save_include_review():
 def save_tag():
       print("tag 컨트롤러 진입")
       body = OrderedDict([
-            ("info_id", request.json.get("info_id")),
+            ("info_id", request.json.get("infoId")),
             ("tag", request.json.get("tag")),
-            ("is_full", request.json.get("is_full"))
+            ("is_full", request.json.get("isFull"))
             ])
 
       for value in list(body.values()):

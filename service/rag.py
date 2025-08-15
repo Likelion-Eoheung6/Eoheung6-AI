@@ -3,7 +3,7 @@ from common.config.qdrant_config import qdrant_client, openai_client, detail_col
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
 import numpy as np
 from common.config.sql_alchemy import db
-from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User
+from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User, EasyTag, PreferEasyTag
 
 
 class RagAnswer:
@@ -30,14 +30,17 @@ class RagAnswer:
             print("이전에 수강했던 클래스가 없는 경우로 진입")
             # 본인이 개설한 클래스는 제외하는 user_id 쿼리
             exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
-            print(f"exclude_record={exclude_record}")
-            exclude_id = [item.info_id for item in exclude_record]
-            print(f"exclude_id={exclude_id}")
+            # print(f"exclude_record={exclude_record}")
+            exclude_id = [item.id for item in exclude_record]
+            # print(f"exclude_id={exclude_id}")
             
-            print(f"user_id={self.user_id}")
+            # print(f"user_id={self.user_id}")
 
-            whole_tag = db.session.query(PreferTag).join(Tag).filter(PreferTag.user_id == self.user_id).all()
-            print(f"whole_tag={whole_tag}")
+            normal_tag = db.session.query(PreferTag).join(Tag).filter(PreferTag.user_id == self.user_id).all()
+            easy_tag = db.session.query(PreferEasyTag).join(EasyTag).filter(PreferEasyTag.user_id == self.user_id).all()
+            
+            whole_tag = normal_tag + easy_tag
+
             prefer_tag = [tags.tag.genre for tags in whole_tag]
             print(f"prefer_tag={prefer_tag}")
 
@@ -70,8 +73,8 @@ class RagAnswer:
                 search = [search]
             except Exception as e:
                 print(f"batch 변환 실패 {str(e)}")
-        # 2. 수강 이력은 있고, 리뷰는 없음
-        elif db.session.query(Review).filter(Review.user_id == self.user_id).first() is None:
+        # 2. 수강 이력 있음
+        else:
             print("이전에 수강했던 클래스가 있는 경우로 진입")
             history = db.session.query(ClassHistory).join(ClassOpen).filter(ClassHistory.user_id == self.user_id).order_by(ClassOpen.open_at.desc()).limit(3).all()
 
@@ -86,18 +89,26 @@ class RagAnswer:
                     model="text-embedding-3-small"
                 ).data[0].embedding
 
-            data.append(embedding)
+                data.append(embedding)
             
+            # 이전에 수강했던 클래스를 제외할 수 있도록 필터링 리스트 생성
+            history_id = [item.class_info.info_id for item in history]
+
+
             search = self.qdrant_client.search_batch(
                 collection_name=self.detail_collection,
                 requests=[
                     models.SearchRequest(
                         vector=vector,
                         limit=6, # 각 쿼리 벡터마다 10개의 결과를 가져옵니다.
-                        filter=Filter(
+                        filter=models.Filter(
                             must_not=[
-                                FieldCondition(key="user_id", match=MatchValue(value=int(self.user_id))),
-                                FieldCondition(key="is_full", match=MatchValue(value=True))
+                                models.FieldCondition(key="user_id", match=MatchValue(value=int(self.user_id))),
+                                models.FieldCondition(key="is_full", match=MatchValue(value=True)),
+                                models.FieldCondition(key="info_id",
+                                                      match=models.MatchAny(
+                                                          any=history_id
+                                                      ))
                             ]
                         )
                     ) for vector in data
@@ -106,9 +117,14 @@ class RagAnswer:
         final_results = {}
         for result_list in search:
             for hit in result_list:
-            # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
-                if hit.id not in final_results or hit.score > final_results[hit.id].score:
-                    final_results[hit.id] = hit
+                info_id = hit.payload.get("info_id")
+                if info_id is None:
+                    continue
+                # hit.id를 기준으로, 아직 없거나 더 높은 점수가 나왔을 때만 딕셔너리에 저장
+                # if hit.id not in final_results or hit.score > final_results[hit.id].score:
+                if info_id not in final_results or hit.score > final_results[info_id].score:
+
+                    final_results[info_id] = hit
 
         # 3. 딕셔너리의 값들만 추출하여 점수(score) 기준으로 내림차순 정렬합니다.
         sorted_results = sorted(final_results.values(), key=lambda x: x.score, reverse=True)

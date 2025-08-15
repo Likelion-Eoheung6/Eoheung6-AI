@@ -16,7 +16,7 @@ call_bp = Blueprint("get_answer", __name__, url_prefix="/ai")
 
 @call_bp.route("/call", methods=["GET"])
 def save_data():
-      print("save_data 컨트롤러 호출")
+      print("RAG 컨트롤러 호출")
       token = JwtDecorder(JwtParser(request).parse()).decode()
       login_user_id = token['id']
 

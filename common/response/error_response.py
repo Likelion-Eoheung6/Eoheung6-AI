@@ -22,6 +22,7 @@ class ErrorResponse(Generic[T], BaseResponse):
         result_message = message if message is not None else base_response_code.message
         print(f"ErrorResponse={ErrorResponse}")
         return ErrorResponse(data, base_response_code, result_message)
+        
     
     def convert(self):
         return ResponseBuilder().is_success(self.is_success).code(self.code).http_status(self.http_status).message(self.message).data(self.data).time_stamp(self.time_stamp).build()
