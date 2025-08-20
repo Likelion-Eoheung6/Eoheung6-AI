@@ -30,14 +30,14 @@ class User(db.Model):
     email = db.Column(db.String(255))
     phone_number = db.Column(db.String(255))
 
-    class_opens = db.relationship('ClassOpen', back_populates='user')
+    user_class_opens = db.relationship('ClassOpen', back_populates='user')
     class_infos = db.relationship('ClassInfo', back_populates='user')
     mentor_places = db.relationship('MentorPlace', back_populates='mentor')
     place_reservations = db.relationship('PlaceReservation', back_populates='user')
     class_applications = db.relationship('ClassApplication', back_populates='user')
     class_recruits = db.relationship('ClassRecruit', back_populates='user')
     reviews = db.relationship('Review', back_populates='user')
-    tag = db.relationship('PreferTag', back_populates='user')
+    # tag = db.relationship('PreferTag', back_populates='user')
     preferred_easy_tags = db.relationship('PreferEasyTag', back_populates='user')
 
 
@@ -47,16 +47,16 @@ class ClassOpen(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
 
     user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'), nullable=False)
-    user = db.relationship('User', back_populates='class_opens')
+    user = db.relationship('User', back_populates='user_class_opens')
 
     info_id = db.Column(db.BigInteger, db.ForeignKey('class_info.id'), nullable=False)
-    info = db.relationship('ClassInfo', back_populates='class_opens')
+    info = db.relationship('ClassInfo', back_populates='info_opens')
 
     mentor_place_id = db.Column(db.BigInteger, db.ForeignKey('mentor_place.mentor_place_id'))
-    mentor_place = db.relationship('MentorPlace', back_populates='class_opens')
+    mentor_place = db.relationship('MentorPlace', back_populates='mp_class_opens')
 
     gov_reservation_id = db.Column(db.BigInteger, db.ForeignKey('place_reservation.gov_reservation_id'))
-    gov_reservation = db.relationship('PlaceReservation', back_populates='class_opens')
+    gov_reservation = db.relationship('PlaceReservation', back_populates='pr_class_opens')
 
     open_at = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
@@ -67,10 +67,10 @@ class ClassOpen(db.Model):
 
     is_full = db.Column(db.Boolean, nullable=False, default=False)
 
-    class_images = db.relationship('ClassImage', back_populates='class_open', cascade="all, delete-orphan")
-    class_applications = db.relationship('ClassApplication', back_populates='class_open', cascade="all, delete-orphan")
+    class_images = db.relationship('ClassImage', back_populates='ci_class_open', cascade="all, delete-orphan")
+    class_applications = db.relationship('ClassApplication', back_populates='ca_class_open', cascade="all, delete-orphan")
     reviews = db.relationship('Review', back_populates='class_open')
-    info = db.relationship('ClassInfo', back_populates='class_opens')
+    #info = db.relationship('ClassInfo', back_populates='class_opens')
 
 
     
@@ -95,7 +95,7 @@ class ClassInfo(db.Model):
     education_tag = db.relationship('Tag', back_populates='class_infos')
 
     mood_tags = db.Column(JSON, nullable=False)
-    class_opens = db.relationship('ClassOpen', back_populates='info')
+    info_opens = db.relationship('ClassOpen', back_populates='info')
 
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
@@ -160,12 +160,12 @@ class ClassApplication(db.Model):
     application_id = db.Column(db.BigInteger, primary_key=True)
 
     open_id = db.Column(db.BigInteger, db.ForeignKey('class_open.id'), nullable=False)
-    class_open = db.relationship('ClassOpen', back_populates='class_applications')
+    ca_class_open = db.relationship('ClassOpen', back_populates='class_applications')
 
     user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'), nullable=False)
     user = db.relationship('User', back_populates='class_applications')
 
-    payment_id = db.Column(db.BigInteger, db.ForeignKey('payment.payment_id'), nullable=False)
+    # payment_id = db.Column(db.BigInteger, db.ForeignKey('payment.payment_id'), nullable=False)
     payment = db.relationship('Payment', back_populates='class_applications')
     
     requested_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
@@ -179,7 +179,7 @@ class ClassImage(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
 
     open_id = db.Column(db.BigInteger, db.ForeignKey('class_open.id'), nullable=False)
-    class_open = db.relationship('ClassOpen', back_populates='class_images')
+    ci_class_open = db.relationship('ClassOpen', back_populates='class_images')
 
     image_url = db.Column(db.String(255), nullable=True)
     sort_order = db.Column(db.Integer, nullable=False)
@@ -233,7 +233,7 @@ class MentorPlace(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    class_opens = db.relationship('ClassOpen', back_populates='mentor_place')
+    mp_class_opens = db.relationship('ClassOpen', back_populates='mentor_place')
 
 
     def __repr__(self):
@@ -251,6 +251,7 @@ class Payment(db.Model):
     status = db.Column(db.Enum(PaymentStatus), nullable=True)
     payment_gate = db.Column(db.Enum(PaymentGateway), nullable=False)
 
+    application_id = db.Column(db.BigInteger, db.ForeignKey('class_application.application_id'))
     class_applications = db.relationship('ClassApplication', back_populates='payment')
     def __repr__(self):
         return f'<Payment {self.order_id}>'
@@ -272,7 +273,7 @@ class PlaceReservation(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    class_opens = db.relationship('ClassOpen', back_populates='gov_reservation')
+    pr_class_opens = db.relationship('ClassOpen', back_populates='gov_reservation')
 
     __table_args__ = (
         db.Index('idx_place_open_at', 'gov_place_id', 'open_at'),
