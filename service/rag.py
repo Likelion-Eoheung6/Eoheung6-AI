@@ -1,9 +1,11 @@
+from datetime import datetime
+from sqlalchemy import and_, or_
 from custom_error.user_not_found_error import UserNotFoundError
 from common.config.qdrant_config import qdrant_client, openai_client, detail_collection, tag_collection
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
 import numpy as np
 from common.config.sql_alchemy import db
-from service.model.class_model import ClassApplication, ClassHistory, ClassInfo, ClassOpen, Payment, PreferTag, Review, Tag, User, EasyTag, PreferEasyTag
+from service.model.class_model import ClassApplication, ClassInfo, ClassOpen, Payment, PreferTag, Review, Tag, User, EasyTag, PreferEasyTag
 
 
 class RagAnswer:
@@ -24,13 +26,22 @@ class RagAnswer:
             # self.user_id = 2
         else:
             raise UserNotFoundError()
-
         # 이전에 수강했던 클래스가 없는 경우
         if db.session.query(ClassApplication) \
             .join(Payment) \
+            .join(ClassOpen, ClassApplication.ca_class_open) \
             .filter(ClassApplication.user_id == self.user_id) \
             .filter(ClassApplication.payment.any(status = 'PAID')) \
-                .first() is None:
+            .filter(
+                or_(
+                    ClassOpen.open_at < datetime.now().date(),
+
+                    and_(
+                        ClassOpen.open_at == datetime.now().date(),
+                        ClassOpen.start_time < datetime.now().time()
+                    )
+                )
+            ).first() is None:
             print("이전에 수강했던 클래스가 없는 경우로 진입")
             # 본인이 개설한 클래스는 제외하는 user_id 쿼리
             exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
