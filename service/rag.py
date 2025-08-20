@@ -3,7 +3,7 @@ from common.config.qdrant_config import qdrant_client, openai_client, detail_col
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, models
 import numpy as np
 from common.config.sql_alchemy import db
-from service.model.class_model import ClassHistory, ClassInfo, ClassOpen, PreferTag, Review, Tag, User, EasyTag, PreferEasyTag
+from service.model.class_model import ClassApplication, ClassHistory, ClassInfo, ClassOpen, Payment, PreferTag, Review, Tag, User, EasyTag, PreferEasyTag
 
 
 class RagAnswer:
@@ -26,7 +26,11 @@ class RagAnswer:
             raise UserNotFoundError()
 
         # 이전에 수강했던 클래스가 없는 경우
-        if db.session.query(ClassHistory).filter(ClassHistory.user_id == self.user_id).first() is None:
+        if db.session.query(ClassApplication) \
+            .join(Payment) \
+            .filter(ClassApplication.user_id == self.user_id) \
+            .filter(ClassApplication.payment.any(status = 'PAID')) \
+                .first() is None:
             print("이전에 수강했던 클래스가 없는 경우로 진입")
             # 본인이 개설한 클래스는 제외하는 user_id 쿼리
             exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
@@ -76,12 +80,22 @@ class RagAnswer:
         # 2. 수강 이력 있음
         else:
             print("이전에 수강했던 클래스가 있는 경우로 진입")
-            history = db.session.query(ClassHistory).join(ClassOpen).filter(ClassHistory.user_id == self.user_id).order_by(ClassOpen.open_at.desc()).limit(3).all()
+            history = db.session.query(ClassApplication)\
+                .join(ClassOpen) \
+                .join(Payment) \
+                .filter(ClassApplication.user_id == self.user_id)\
+                .filter(ClassApplication.payment.any(status = 'PAID')) \
+                .order_by(ClassOpen.open_at.desc()) \
+                    .limit(3).all()
+            
+            exclude_record = db.session.query(ClassOpen).join(ClassInfo).filter(ClassInfo.user_id == self.user_id).all()
+            # print(f"exclude_record={exclude_record}")
+            exclude_id = [item.id for item in exclude_record]
 
             data = []
             for item in history:
                 # f-string으로 임베딩할 텍스트를 생성
-                data_string = f"tag: {item.class_info.tag}, title: {item.class_info.title}"
+                data_string = f"tag: {item.ca_class_open.info.education_tag.genre}, title: {item.ca_class_open.info.title}"
     
                 # 임베딩 생성
                 embedding = self.openai_client.embeddings.create(
@@ -92,7 +106,7 @@ class RagAnswer:
                 data.append(embedding)
             
             # 이전에 수강했던 클래스를 제외할 수 있도록 필터링 리스트 생성
-            history_id = [item.class_info.info_id for item in history]
+            history_id = [item.ca_class_open.info.id for item in history] + exclude_id
 
 
             search = self.qdrant_client.search_batch(
@@ -110,7 +124,8 @@ class RagAnswer:
                                                           any=history_id
                                                       ))
                             ]
-                        )
+                        ),
+                        with_payload=True
                     ) for vector in data
                 ]
             )
