@@ -103,21 +103,6 @@ class ClassInfo(db.Model):
     def __repr__(self):
         return f'<ClassInfo {self.id}: {self.title}>'
 
-class ClassHistory(db.Model):
-    # 클래스 개설 일정 인스턴스화
-    __tablename__ = 'class_history'
-
-    history_id = db.Column(db.BigInteger, primary_key=True)
-    user_id = db.Column(db.BigInteger, db.ForeignKey('user.user_id'))
-    info_id = db.Column(db.BigInteger, db.ForeignKey('class_info.id'))
-    open_id = db.Column(db.BigInteger, db.ForeignKey('class_open.id')) # id -> open_id
-    role = db.Column(db.String(255))
-    joined_at = db.Column(db.DateTime)
-
-    user = db.relationship('User', backref='who_join')
-    class_info = db.relationship('ClassInfo', backref='what_class')
-    class_open = db.relationship('ClassOpen', backref='When_join')
-
 
 class Tag(db.Model):
     __tablename__ = "tag"
