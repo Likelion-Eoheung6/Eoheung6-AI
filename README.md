@@ -14,6 +14,11 @@
 - Framework: Flask 3.1.1
 - Database: MySQL, Qdrant
 
+### 📄 애플리케이션 기술 문서
+- https://eoheung6.notion.site/
+
+---
+
 ## 프로젝트 초기 설정
  
 1. **파이썬 가상환경 생성** <br>
